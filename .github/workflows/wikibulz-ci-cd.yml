@@ -2,22 +2,21 @@ name: WikiBulz CI/CD
 
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
   push:
-    branches: [master]
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
-  group: dite-production
+  group: wikibulz-production
   cancel-in-progress: false
 
 env:
   NEXT_TELEMETRY_DISABLED: "1"
   SITE_URL: https://wikibulz.com
   SITE_NAME: WikiBulz
-  ADMIN_PATH_SECRET: ${{ secrets.ADMIN_PATH_SECRET || 'control-room-7f4c9a2e' }}
 
 jobs:
   verify:
@@ -26,53 +25,30 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
-
-      - name: Restore Next.js build cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
-
       - name: Install dependencies
         run: npm ci
-
       - name: Lint
         run: npm run lint
-
       - name: Typecheck
         run: npm run typecheck
-
       - name: Unit tests
         run: npm test
-
       - name: SEO validation
         run: npm run validate:seo
-
       - name: Production build
         run: npm run build
-
       - name: Package release
         run: |
           tar -czf /tmp/wikibulz-release.tgz \
-            --exclude=.git \
-            --exclude=node_modules \
-            --exclude=.env \
-            --exclude='.env.*' \
-            --exclude=admin-reset.env \
-            --exclude='*-deploy.tar' \
-            --exclude='.next/cache' \
-            --exclude='*.log' \
-            .
+            --exclude=.git --exclude=node_modules --exclude=.env --exclude='.env.*' \
+            --exclude=admin-reset.env --exclude='*-deploy.tar' --exclude='*.tgz' \
+            --exclude='.next/cache' --exclude='*.log' .
           mv /tmp/wikibulz-release.tgz wikibulz-release.tgz
-
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
@@ -83,25 +59,30 @@ jobs:
 
   deploy:
     name: Deploy production
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: verify
     runs-on: ubuntu-latest
     environment: production
     steps:
       - name: Checkout deployment script
         uses: actions/checkout@v4
-
       - name: Download release artifact
         uses: actions/download-artifact@v4
         with:
           name: wikibulz-release
           path: release
-
       - name: Configure SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
-
+      - name: Add VPS host key
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
       - name: Deploy with rollback protection
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -113,12 +94,5 @@ jobs:
           test -n "$DEPLOY_HOST"
           test -n "$DEPLOY_USER"
           test -f release/wikibulz-release.tgz
-          install -m 700 -d "$HOME/.ssh"
-          printf '%s\n' '${{ secrets.DEPLOY_KNOWN_HOSTS }}' > "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/known_hosts"
-          scp -P "$DEPLOY_PORT" -o BatchMode=yes \
-            release/wikibulz-release.tgz \
-            "$DEPLOY_USER@$DEPLOY_HOST:/tmp/wikibulz-$RELEASE_ID.tgz"
-          ssh -p "$DEPLOY_PORT" -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" \
-            "bash -s -- '$RELEASE_ID' '/tmp/wikibulz-$RELEASE_ID.tgz'" \
-            < deploy/remote-deploy.sh
+          scp -P "$DEPLOY_PORT" -o BatchMode=yes release/wikibulz-release.tgz "$DEPLOY_USER@$DEPLOY_HOST:/tmp/wikibulz-$RELEASE_ID.tgz"
+          ssh -p "$DEPLOY_PORT" -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$RELEASE_ID' '/tmp/wikibulz-$RELEASE_ID.tgz'" < deploy/remote-deploy.sh

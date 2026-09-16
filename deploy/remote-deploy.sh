@@ -3,30 +3,23 @@ set -Eeuo pipefail
 
 release_id="${1:?release id is required}"
 archive="${2:?archive path is required}"
-app_root="/opt/dite"
-app_dir="$app_root/app"
+app_root="/opt/wikibulz"
+env_file="$app_root/app/.env"
 release_root="$app_root/releases"
 release_dir="$release_root/$release_id"
 current_link="$app_root/current"
-service_name="dite-web"
+compose_project="wikibulz"
 
 test -f "$archive"
-test -f "$app_dir/.env"
-test -n "$release_id"
+test -f "$env_file"
 mkdir -p "$release_root"
 
 previous=""
 if [ -e "$current_link" ] || [ -L "$current_link" ]; then
   previous="$(readlink -f "$current_link")"
 fi
-
-if [ ! -e "$current_link" ] && [ ! -L "$current_link" ]; then
-  initial_dir="$release_root/manual-initial"
-  if [ ! -e "$initial_dir" ]; then
-    cp -a "$app_dir" "$initial_dir"
-  fi
-  ln -s "$initial_dir" "$current_link"
-  previous="$initial_dir"
+if [ -z "$previous" ] && [ -d "$app_root/app/source" ]; then
+  previous="$app_root/app/source"
 fi
 
 if [ -e "$release_dir" ]; then
@@ -36,43 +29,23 @@ fi
 
 mkdir -p "$release_dir"
 tar -xzf "$archive" -C "$release_dir"
-cp "$app_dir/.env" "$release_dir/.env"
+cp "$env_file" "$release_dir/.env"
 chmod 600 "$release_dir/.env"
 
+sed -i \
+  's#"3000:3000"#"127.0.0.1:3002:3000"#; s#"27017:27017"#"127.0.0.1:27017:27017"#; s#"6379:6379"#"127.0.0.1:6379:6379"#' \
+  "$release_dir/docker-compose.yml"
+sed -i \
+  's#^MONGODB_URI=.*#MONGODB_URI=mongodb://mongodb:27017/wikibulz#; s#^REDIS_URL=.*#REDIS_URL=redis://redis:6379#; s#^SITE_URL=.*#SITE_URL=https://wikibulz.com#' \
+  "$release_dir/.env"
+
 cd "$release_dir"
-node "$release_dir/deploy/sync-editorial-mailbox.mjs" "$release_dir/.env"
-npm ci --omit=dev --no-audit --no-fund
-
-sudo tee "/etc/systemd/system/$service_name.service" >/dev/null <<'UNIT'
-[Unit]
-Description=WikiBulz Next.js web
-After=network-online.target mongod.service
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=aradhysharmably
-WorkingDirectory=/opt/dite/current
-Environment=NODE_ENV=production
-ExecStart=/usr/bin/npm start -- -p 3001 -H 127.0.0.1
-Restart=always
-RestartSec=5
-KillSignal=SIGINT
-NoNewPrivileges=true
-PrivateTmp=true
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-
-sudo systemctl daemon-reload
-ln -s "$release_dir" "$current_link.next"
-mv -Tf "$current_link.next" "$current_link"
-sudo systemctl restart "$service_name"
+docker compose -p "$compose_project" up -d --build --remove-orphans
+ln -sfn "$release_dir" "$current_link"
 
 healthy=false
 for _ in $(seq 1 30); do
-  if curl -fsS --max-time 5 http://127.0.0.1:3001/ >/dev/null; then
+  if curl -fsS --max-time 5 http://127.0.0.1:3002/api/health >/dev/null; then
     healthy=true
     break
   fi
@@ -81,12 +54,12 @@ done
 
 if [ "$healthy" != true ]; then
   echo "Health check failed; restoring previous release."
-  if [ -n "$previous" ] && [ -e "$previous" ]; then
-    ln -s "$previous" "$current_link.rollback"
-    mv -Tf "$current_link.rollback" "$current_link"
-    sudo systemctl restart "$service_name"
+  if [ -n "$previous" ] && [ -d "$previous" ]; then
+    cd "$previous"
+    docker compose -p "$compose_project" up -d --build --remove-orphans || true
+    ln -sfn "$previous" "$current_link"
   fi
-  sudo journalctl -u "$service_name" -n 80 --no-pager || true
+  docker compose -p "$compose_project" logs --tail 100 nextjs || true
   exit 1
 fi
 

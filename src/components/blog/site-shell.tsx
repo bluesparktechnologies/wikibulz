@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight, Mail, Search } from "lucide-react";
 import { MobileCategoryMenu } from "@/components/blog/mobile-category-menu";
 import { getCategories } from "@/repositories/content.repository";
@@ -48,7 +49,7 @@ export async function SiteHeader() {
     <header className="relative z-50 border-b border-[#dfe7e2] bg-white/95 text-[var(--foreground)] backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
         <Link href="/" className="min-w-0">
-          <span className="block text-xl font-black tracking-tight text-[var(--brand-strong)] md:text-2xl">WikiBulz</span>
+          <Image src="/logo-wikibulz.png" alt="WikiBulz" width={440} height={156} className="h-10 w-auto object-contain object-left md:h-12" priority />
           <span className="mt-0.5 hidden text-xs font-semibold text-[var(--muted)] sm:block">Tech insights for a brighter tomorrow</span>
         </Link>
         <nav aria-label="Main navigation" className="hidden shrink-0 items-center gap-2 md:flex md:gap-5">
@@ -84,7 +85,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-5 py-12 md:py-16">
         <div className="flex flex-col gap-7 border-b border-[#28554c] pb-10 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-xl">
-            <Link href="/" className="text-2xl font-black tracking-tight hover:text-[#a6d6c7]">WikiBulz</Link>
+            <Link href="/" className="inline-block" aria-label="WikiBulz home"><Image src="/logo-wikibulz.png" alt="WikiBulz" width={440} height={156} className="h-12 w-auto object-contain object-left brightness-0 invert" /></Link>
             <p className="mt-3 text-sm leading-7 text-[#c9d8d1]">Daily technology coverage for readers who want clear context on AI, cybersecurity, software, cloud platforms, startups, SEO technology, and digital business.</p>
           </div>
           <Link href="/newsletter" className="inline-flex w-fit items-center gap-2 rounded-md bg-[#168575] px-4 py-3 text-sm font-black text-white transition hover:bg-[#1d9a87]">
