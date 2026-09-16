@@ -1,0 +1,10 @@
+import { posts } from "../src/lib/content/sample-data";
+import { analyzePostSeo } from "../src/lib/seo/analysis";
+import { detectOrphanPosts } from "../src/services/internal-links";
+const duplicateTitles = posts.filter((post, index) => posts.findIndex((item) => item.title.toLowerCase() === post.title.toLowerCase()) !== index);
+const duplicateDescriptions = posts.filter((post, index) => post.metaDescription && posts.findIndex((item) => item.metaDescription === post.metaDescription) !== index);
+const missingDescriptions = posts.filter((post) => !post.metaDescription);
+const missingAlt = posts.filter((post) => !post.featuredImage.alt);
+const orphaned = detectOrphanPosts(posts);
+const warnings = posts.flatMap((post) => analyzePostSeo(post).filter((check) => check.status !== "pass").map((check) => ({ url: "/" + post.category.slug + "/" + post.slug, check: check.label, detail: check.detail })));
+console.log(JSON.stringify({ duplicateTitles: duplicateTitles.length, duplicateDescriptions: duplicateDescriptions.length, missingDescriptions: missingDescriptions.length, missingAlt: missingAlt.length, orphaned: orphaned.length, warnings }, null, 2));

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Modern web platform workspace</title>
+  <desc id="desc">A browser window and connected interface panels on a deep green background.</desc>
+  <rect width="1600" height="900" fill="#0d2f29"/>
+  <circle cx="1320" cy="120" r="280" fill="#166f61" opacity=".55"/>
+  <rect x="180" y="180" width="1240" height="560" rx="28" fill="#f4f8f5"/>
+  <rect x="180" y="180" width="1240" height="86" rx="28" fill="#d8e9e2"/>
+  <circle cx="240" cy="223" r="12" fill="#c57a18"/><circle cx="280" cy="223" r="12" fill="#0d2f29"/><circle cx="320" cy="223" r="12" fill="#168777"/>
+  <rect x="280" y="340" width="420" height="250" rx="18" fill="#168777"/><rect x="770" y="340" width="440" height="30" rx="15" fill="#a8c9bc"/><rect x="770" y="410" width="340" height="30" rx="15" fill="#d0e1da"/><rect x="770" y="480" width="390" height="30" rx="15" fill="#d0e1da"/>
+</svg>

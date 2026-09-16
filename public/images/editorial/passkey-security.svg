@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Passkey security protection</title>
+  <desc id="desc">A secure lock icon surrounded by layered protective rings.</desc>
+  <rect width="1600" height="900" fill="#152f3d"/>
+  <circle cx="800" cy="450" r="290" fill="#1a6f68" opacity=".55"/><circle cx="800" cy="450" r="205" fill="#e8f4ef"/>
+  <rect x="610" y="420" width="380" height="270" rx="38" fill="#0d2f29"/><path d="M690 420v-90c0-150 220-150 220 0v90" fill="none" stroke="#0d2f29" stroke-width="58"/>
+  <circle cx="800" cy="535" r="34" fill="#f0b35b"/><rect x="786" y="535" width="28" height="90" rx="14" fill="#f0b35b"/>
+</svg>

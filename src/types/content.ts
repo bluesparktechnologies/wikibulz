@@ -1,0 +1,14 @@
+export type PublishStatus = "draft" | "review" | "scheduled" | "published" | "archived" | "trash";
+export type SchemaType = "Article" | "BlogPosting" | "NewsArticle";
+export type RobotsDirective = "index" | "noindex";
+export type MediaAsset = { url: string; alt: string; width: number; height: number; caption?: string; credit?: string };
+export type Author = { id: string; name: string; slug: string; email: string; bio: string; avatar?: MediaAsset; jobTitle?: string; expertise: string[]; credentials: string[]; socialLinks: string[]; website?: string; status: "active" | "inactive"; createdAt: string; updatedAt: string };
+export type Category = { id: string; name: string; slug: string; description: string; seoTitle?: string; metaDescription?: string; canonicalUrl?: string; indexStatus: RobotsDirective; parentCategory?: string; categoryPath?: string[]; featuredImage?: MediaAsset };
+export type Tag = { id: string; name: string; slug: string; description?: string; indexStatus: RobotsDirective };
+export type SourceReference = { title: string; url: string; publisher?: string; dateAccessed?: string };
+export type FaqItem = { question: string; answer: string };
+export type TocItem = { id: string; text: string; level: 2 | 3 };
+export type Post = { id: string; title: string; slug: string; publicId?: string; excerpt: string; content: string; featuredImage: MediaAsset; author: Author; reviewer?: Author; factCheckedBy?: Author; category: Category; tags: Tag[]; status: PublishStatus; publishedAt?: string; updatedAt: string; scheduledAt?: string; seoTitle?: string; metaDescription?: string; canonicalUrl?: string; robotsIndex: boolean; robotsFollow: boolean; focusKeyword?: string; secondaryKeywords: string[]; ogTitle?: string; ogDescription?: string; ogImage?: MediaAsset; twitterTitle?: string; twitterDescription?: string; twitterImage?: MediaAsset; schemaType: SchemaType; featured: boolean; editorPick: boolean; readingTime: number; wordCount: number; views: number; shares: number; tableOfContents: TocItem[]; relatedPosts: string[]; manualInternalLinks: string[]; sources: SourceReference[]; references: SourceReference[]; faqs: FaqItem[]; reviewedBy?: string; lastReviewedAt?: string; redirectHistory: string[]; createdAt: string };
+export type StaticPage = { id: string; title: string; slug: string; excerpt: string; content: string; seoTitle?: string; metaDescription?: string; canonicalUrl?: string; robotsIndex: boolean; robotsFollow: boolean; updatedAt: string };
+export type RedirectRecord = { id: string; sourcePath: string; destinationPath: string; statusCode: 301 | 302 | 307 | 308; active: boolean; createdAt: string };
+export type UserRole = "admin" | "editor" | "author" | "seo";

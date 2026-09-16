@@ -1,0 +1,96 @@
+import { cache } from "react";
+import { categories, authors, posts, redirects, staticPages } from "@/lib/content/sample-data";
+import { getCachedJson } from "@/lib/cache/cache";
+import { categoryPath, matchesPostSlug } from "@/lib/seo/url";
+import { getCategoryFamilySlugs } from "@/lib/seo/category-tree";
+import { connectMongo } from "@/lib/db/mongoose";
+import { AuthorModel, CategoryModel, PageModel, PostModel, RedirectModel, postCategoryPopulate } from "@/models/schemas";
+import { mapAuthor, mapCategory, mapPost, mapRedirect, mapStaticPage } from "@/repositories/mappers";
+import type { Author, Category, Post, RedirectRecord, StaticPage } from "@/types/content";
+
+const published = (post: Post) => post.status === "published" && post.robotsIndex;
+const byDate = (a: Post, b: Post) => Date.parse(b.publishedAt || b.updatedAt) - Date.parse(a.publishedAt || a.updatedAt);
+const requireDatabaseInProduction = () => { if (process.env.NODE_ENV === "production") throw new Error("MongoDB is required for public content in production; sample content fallback is disabled."); };
+
+export const getPublishedPosts = cache(async (limit = 20, page = 1) => getCachedJson("posts:published:" + limit + ":" + page, async () => {
+  const db = await connectMongo();
+  if (!db) { requireDatabaseInProduction(); return posts.filter(published).sort(byDate).slice((page - 1) * limit, page * limit); }
+  const docs = await PostModel.find({ status: "published", robotsIndex: true })
+    .populate("author reviewer factCheckedBy tags")
+    .populate(postCategoryPopulate)
+    .sort({ publishedAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean();
+  return JSON.parse(JSON.stringify(docs)).map(mapPost) as Post[];
+}, 180, { origin: "mongodb", validate: (value) => Array.isArray(value) && value.every((post) => post && typeof post === "object" && (post as Post).status === "published" && (post as Post).robotsIndex === true) }));
+
+export const getAllPostsForAdmin = cache(async (limit = 100, page = 1): Promise<Post[]> => {
+  const db = await connectMongo();
+  if (!db) { requireDatabaseInProduction(); return posts.sort(byDate).slice((page - 1) * limit, page * limit); }
+  const docs = await PostModel.find({ status: { $ne: "trash" } })
+    .populate("author reviewer factCheckedBy tags")
+    .populate(postCategoryPopulate)
+    .sort({ updatedAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean();
+  return JSON.parse(JSON.stringify(docs)).map(mapPost) as Post[];
+});
+
+export const getTrashedPostsForAdmin = cache(async (limit = 100, page = 1): Promise<Post[]> => {
+  const db = await connectMongo();
+  if (!db) { requireDatabaseInProduction(); return posts.filter((post) => post.status === "trash").sort(byDate).slice((page - 1) * limit, page * limit); }
+  const docs = await PostModel.find({ status: "trash" })
+    .populate("author reviewer factCheckedBy tags")
+    .populate(postCategoryPopulate)
+    .sort({ updatedAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean();
+  return JSON.parse(JSON.stringify(docs)).map(mapPost) as Post[];
+});
+
+export const getFeaturedPosts = cache(async () => (await getPublishedPosts(50)).filter((post) => post.featured).slice(0, 3));
+export const getPopularPosts = cache(async () => (await getPublishedPosts(50)).sort((a, b) => b.views - a.views).slice(0, 5));
+export const getEditorPicks = cache(async () => (await getPublishedPosts(50)).filter((post) => post.editorPick).slice(0, 4));
+export const getCategories = cache(async (): Promise<Category[]> => {
+  const db = await connectMongo();
+  if (!db) { requireDatabaseInProduction(); return categories; }
+  const docs = await CategoryModel.find({}).populate({ path: "parentCategory", populate: { path: "parentCategory" } }).sort({ name: 1 }).lean();
+  return JSON.parse(JSON.stringify(docs)).map(mapCategory) as Category[];
+});
+export const getAuthors = cache(async (): Promise<Author[]> => {
+  const db = await connectMongo();
+  if (!db) { requireDatabaseInProduction(); return authors; }
+  const docs = await AuthorModel.find({ status: "active" }).sort({ name: 1 }).lean();
+  return JSON.parse(JSON.stringify(docs)).map(mapAuthor) as Author[];
+});
+export const getPostBySlugs = cache(async (categorySlug: string, postSlug: string) => (await getPublishedPosts(100)).find((post) => post.category.slug === categorySlug && matchesPostSlug(post, postSlug)) ?? null);
+export const getPostByCategoryPath = cache(async (path: string[], postSlug: string) => {
+  const requestedPath = path.join("/");
+  return (await getPublishedPosts(100)).find((post) => categoryPath(post.category).join("/") === requestedPath && matchesPostSlug(post, postSlug)) ?? null;
+});
+export const getPostById = cache(async (id: string) => (await getAllPostsForAdmin(200)).find((post) => post.id === id) ?? null);
+export const getCategoryBySlug = cache(async (slug: string) => (await getCategories()).find((category) => category.slug === slug) ?? null);
+export const getChildCategories = cache(async (parentId: string) => (await getCategories()).filter((category) => category.parentCategory === parentId).sort((a, b) => a.name.localeCompare(b.name)));
+export const getPostsByCategory = cache(async (slug: string, page = 1) => {
+  const categorySlugs = getCategoryFamilySlugs(await getCategories(), slug);
+  return (await getPublishedPosts(100)).filter((post) => categorySlugs.has(post.category.slug) || categoryPath(post.category).includes(slug)).sort(byDate).slice((page - 1) * 12, page * 12);
+});
+export const getAuthorBySlug = cache(async (slug: string) => (await getAuthors()).find((author) => author.slug === slug) ?? null);
+export const getPostsByAuthor = cache(async (slug: string) => (await getPublishedPosts(100)).filter((post) => post.author.slug === slug));
+export const getRelatedPosts = cache(async (post: Post) => (await getPublishedPosts(100)).filter((candidate) => candidate.id !== post.id && (candidate.category.slug === post.category.slug || candidate.tags.some((tag) => post.tags.map((t) => t.slug).includes(tag.slug)) || post.relatedPosts.includes(candidate.id))).slice(0, 4));
+export const searchPosts = cache(async (query: string) => { const needle = query.toLowerCase(); return (await getPublishedPosts(100)).filter((post) => [post.title, post.excerpt, post.focusKeyword, post.category.name, ...post.secondaryKeywords].join(" ").toLowerCase().includes(needle)).slice(0, 20); });
+export const getStaticPage = cache(async (slug: string): Promise<StaticPage | null> => {
+  const db = await connectMongo();
+  if (!db) { requireDatabaseInProduction(); return staticPages.find((page) => page.slug === slug) ?? null; }
+  const doc = await PageModel.findOne({ slug }).lean();
+  return doc ? mapStaticPage(JSON.parse(JSON.stringify(doc))) : null;
+});
+export const getRedirects = cache(async (): Promise<RedirectRecord[]> => {
+  const db = await connectMongo();
+  if (!db) { requireDatabaseInProduction(); return redirects; }
+  const docs = await RedirectModel.find({ active: true }).lean();
+  return JSON.parse(JSON.stringify(docs)).map(mapRedirect) as RedirectRecord[];
+});

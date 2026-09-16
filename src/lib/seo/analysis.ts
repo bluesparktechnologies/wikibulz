@@ -1,0 +1,22 @@
+import sanitizeHtml from "sanitize-html";
+import type { Post } from "@/types/content";
+
+export type SeoCheck = { label: string; status: "pass" | "warning" | "fail"; detail: string };
+const headingPattern = /<h([1-6])[^>]*>(.*?)<\/h\1>/gi;
+const supportedTags = "h[1-6]|p|ul|ol|li|strong|b|em|i|u|s|blockquote|a|img|hr|table|thead|tbody|tr|th|td|iframe";
+const escapedTagPattern = new RegExp(`&lt;(/?(?:${supportedTags})\\b[^&]*?)&gt;`, "gi");
+
+function restoreEscapedTags(html: string) {
+  return html.replace(escapedTagPattern, (_full, tag: string) => `<${tag.replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/&amp;/gi, "&")}>`);
+}
+
+export function sanitizeArticleHtml(html: string, options: { articleBody?: boolean } = { articleBody: true }) { const transformTags = { a: (_tagName: string, attribs: Record<string, string>) => { const isExternal = attribs.href?.startsWith("http"); return { tagName: "a", attribs: { ...attribs, rel: isExternal ? "noopener noreferrer" : attribs.rel ?? "" } }; }, img: (_tagName: string, attribs: Record<string, string>) => ({ tagName: "img", attribs: { ...attribs, loading: attribs.loading ?? "lazy", decoding: "async" } }) } as Record<string, (tagName: string, attribs: Record<string, string>) => { tagName: string; attribs: Record<string, string> }>;
+  if (options.articleBody) transformTags.h1 = (_tagName, attribs) => ({ tagName: "h2", attribs });
+  return sanitizeHtml(restoreEscapedTags(html), { allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "h1", "h2", "h3", "h4", "hr", "table", "thead", "tbody", "tr", "th", "td", "iframe"]), allowedAttributes: { a: ["href", "name", "target", "rel"], img: ["src", "alt", "width", "height", "loading", "decoding"], h1: ["id"], h2: ["id"], h3: ["id"], h4: ["id"], iframe: ["src", "title", "loading", "allow", "allowfullscreen"], "*": ["class"] }, allowedSchemes: ["http", "https", "mailto"], transformTags }); }
+export function analyzePostSeo(post: Post): SeoCheck[] { const headings = Array.from(post.content.matchAll(headingPattern)).map((match) => Number(match[1])); const h1Count = headings.filter((level) => level === 1).length; const imageAltMissing = /<img(?![^>]*alt=["'][^"']+["'])/i.test(post.content); return [{ label: "SEO title", status: post.seoTitle && post.seoTitle.length <= 65 ? "pass" : "warning", detail: post.seoTitle ? post.seoTitle.length + " characters" : "Fallbacks to post title" }, { label: "Meta description", status: post.metaDescription && post.metaDescription.length >= 70 && post.metaDescription.length <= 160 ? "pass" : "warning", detail: post.metaDescription ? post.metaDescription.length + " characters" : "Missing custom description" }, { label: "Heading structure", status: h1Count <= 1 && headings.includes(2) ? "pass" : "warning", detail: h1Count > 1 ? "Multiple H1 tags found" : "Uses post title as the visible H1" }, { label: "Image alt text", status: imageAltMissing || !post.featuredImage.alt ? "warning" : "pass", detail: imageAltMissing ? "One or more body images need alt text" : "Featured image alt text present" }, { label: "Canonical", status: post.canonicalUrl && !post.canonicalUrl.startsWith("http") ? "fail" : "pass", detail: post.canonicalUrl ? "Custom canonical set" : "Canonical falls back to official article URL" }, { label: "SEO Completeness", status: post.wordCount >= 600 && post.sources.length > 0 && post.author ? "pass" : "warning", detail: "Internal editorial metric only, not a Google ranking score" }]; }
+
+export type DuplicateSeoIssue = { value: string; postIds: string[]; titles: string[] };
+export function findDuplicateSeoIssues(posts: Pick<Post, "id" | "title" | "seoTitle" | "metaDescription" | "excerpt">[]) {
+  const collect = (values: Array<{ value: string; postId: string; title: string }>) => Array.from(values.reduce((groups, item) => { const key = item.value.trim().toLowerCase(); if (!key) return groups; const group = groups.get(key) ?? { value: item.value.trim(), postIds: [], titles: [] }; group.postIds.push(item.postId); group.titles.push(item.title); groups.set(key, group); return groups; }, new Map<string, DuplicateSeoIssue>()).values()).filter((issue) => issue.postIds.length > 1);
+  return { titles: collect(posts.map((post) => ({ value: post.seoTitle || post.title, postId: post.id, title: post.title }))), descriptions: collect(posts.map((post) => ({ value: post.metaDescription || post.excerpt, postId: post.id, title: post.title }))) };
+}

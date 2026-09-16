@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Artificial intelligence workflow</title>
+  <desc id="desc">A bright network of connected nodes representing an AI tool workflow.</desc>
+  <rect width="1600" height="900" fill="#122d4a"/>
+  <circle cx="800" cy="450" r="190" fill="#f0b35b"/><circle cx="800" cy="450" r="120" fill="#fff4d6"/>
+  <g stroke="#79c9bc" stroke-width="18" fill="none"><path d="M800 260V120M800 640v140M610 450H470M990 450h140M665 315 560 210M935 585l105 105M935 315l105-105M665 585 560 690"/></g>
+  <g fill="#e8f5f0"><circle cx="800" cy="120" r="32"/><circle cx="800" cy="780" r="32"/><circle cx="470" cy="450" r="32"/><circle cx="1130" cy="450" r="32"/><circle cx="560" cy="210" r="32"/><circle cx="1040" cy="690" r="32"/><circle cx="1040" cy="210" r="32"/><circle cx="560" cy="690" r="32"/></g>
+</svg>

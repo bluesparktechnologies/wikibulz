@@ -1,0 +1,5 @@
+import { RedirectForm } from "@/components/admin/redirect-form";
+import { requireRole } from "@/lib/auth/guards";
+import { getRedirects } from "@/repositories/content.repository";
+import { validateRedirect } from "@/services/redirects";
+export default async function RedirectsPage() { await requireRole("seo"); const redirects = await getRedirects(); return <><h1 className="text-4xl font-black">Redirect Manager</h1><p className="mt-2 text-[var(--muted)]">Permanent redirects are used for SEO migrations and slug/category URL changes. Chains and loops are flagged before saving.</p><RedirectForm /><div className="mt-8 rounded-lg border border-[var(--line)] bg-white"><table className="w-full text-left text-sm"><thead><tr><th className="p-4">Source</th><th>Destination</th><th>Status</th><th>Warnings</th></tr></thead><tbody>{redirects.map((record) => <tr key={record.id} className="border-t border-[var(--line)]"><td className="p-4">{record.sourcePath}</td><td>{record.destinationPath}</td><td>{record.statusCode}</td><td>{validateRedirect(record, redirects).join(", ") || "clear"}</td></tr>)}</tbody></table></div></>; }

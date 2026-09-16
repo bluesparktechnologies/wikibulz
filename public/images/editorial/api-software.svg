@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Software API development</title>
+  <desc id="desc">Code panels and service nodes representing a versioned software API.</desc>
+  <rect width="1600" height="900" fill="#202a42"/>
+  <rect x="150" y="170" width="720" height="560" rx="24" fill="#0d1729"/><rect x="940" y="250" width="420" height="400" rx="24" fill="#f4f8f5"/>
+  <g fill="#79c9bc"><rect x="230" y="270" width="360" height="24" rx="12"/><rect x="230" y="340" width="500" height="24" rx="12"/><rect x="230" y="410" width="280" height="24" rx="12"/><rect x="230" y="480" width="430" height="24" rx="12"/></g>
+  <circle cx="1150" cy="370" r="72" fill="#168777"/><circle cx="1150" cy="530" r="72" fill="#c57a18"/><path d="M1150 442v16" stroke="#0d2f29" stroke-width="20"/>
+</svg>

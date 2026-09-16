@@ -1,0 +1,3 @@
+import Link from "next/link";
+import { Footer, SiteHeader } from "@/components/blog/site-shell";
+export default function NotFound() { return <><SiteHeader /><main className="mx-auto max-w-3xl px-5 py-20"><p className="text-sm font-bold uppercase tracking-wide text-[var(--accent)]">404</p><h1 className="mt-3 text-5xl font-black">Page not found</h1><p className="mt-4 text-lg leading-8 text-[var(--muted)]">This URL does not match a published article, archive, author, or static page. Important missing URLs can be reviewed in Admin and converted into redirects.</p><Link href="/" className="mt-8 inline-flex rounded-md bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white">Return Home</Link></main><Footer /></>; }
