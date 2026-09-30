@@ -102,11 +102,11 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
           ADMIN_EMAIL: ${{ secrets.SEED_ADMIN_EMAIL }}
-          ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+          ADMIN_PASSWORD_HASH: ${{ secrets.SEED_ADMIN_PASSWORD_HASH }}
         run: |
           set -eu
           email_b64="$(printf %s "$ADMIN_EMAIL" | base64 -w0)"
-          password_b64="$(printf %s "$ADMIN_PASSWORD" | base64 -w0)"
-          node_script='const mongoose=require("mongoose"),bcrypt=require("bcryptjs");(async()=>{const email=Buffer.from(process.env.ADMIN_EMAIL_B64,"base64").toString();const password=Buffer.from(process.env.ADMIN_PASSWORD_B64,"base64").toString();await mongoose.connect("mongodb://mongodb:27017/wikibulz");const passwordHash=await bcrypt.hash(password,12);await mongoose.connection.collection("users").updateOne({email},{$set:{email,name:"WikiBulz Admin",role:"admin",active:true,passwordHash},$setOnInsert:{createdAt:new Date()}},{upsert:true});await mongoose.disconnect();console.log("admin-account-provisioned")})().catch(error=>{console.error(error.message);process.exit(1)})'
+          password_hash_b64="$(printf %s "$ADMIN_PASSWORD_HASH" | base64 -w0)"
+          node_script='const mongoose=require("mongoose");(async()=>{const email=Buffer.from(process.env.ADMIN_EMAIL_B64,"base64").toString();const passwordHash=Buffer.from(process.env.ADMIN_PASSWORD_HASH_B64,"base64").toString();await mongoose.connect("mongodb://mongodb:27017/wikibulz");await mongoose.connection.collection("users").updateOne({email},{$set:{email,name:"WikiBulz Admin",role:"admin",active:true,passwordHash},$setOnInsert:{createdAt:new Date()}},{upsert:true});await mongoose.disconnect();console.log("admin-account-provisioned")})().catch(error=>{console.error(error.message);process.exit(1)})'
           script_b64="$(printf %s "$node_script" | base64 -w0)"
-          ssh -p "$DEPLOY_PORT" -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" "docker exec -e ADMIN_EMAIL_B64=$email_b64 -e ADMIN_PASSWORD_B64=$password_b64 wikibulz-nextjs-1 node -e 'eval(Buffer.from(\"$script_b64\",\"base64\").toString())'"
+          ssh -p "$DEPLOY_PORT" -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" "docker exec -e ADMIN_EMAIL_B64=$email_b64 -e ADMIN_PASSWORD_HASH_B64=$password_hash_b64 wikibulz-nextjs-1 node -e 'eval(Buffer.from(\"$script_b64\",\"base64\").toString())'"
