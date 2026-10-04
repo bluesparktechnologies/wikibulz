@@ -34,7 +34,71 @@ export function TagForm() {
 
 export function AuthorForm({ author }: { author?: Author }) {
   const [state, action, pending] = useActionState(saveAuthorAction, initialState);
-  return <form action={action} className="grid gap-4 rounded-lg border border-[var(--line)] bg-white p-5"><input type="hidden" name="authorId" value={author?.id ?? ""}/><div className="grid gap-4 md:grid-cols-3"><input name="name" defaultValue={author?.name} placeholder="Name" className="rounded border border-[var(--line)] px-3 py-2"/><input name="slug" defaultValue={author?.slug} placeholder="Slug" className="rounded border border-[var(--line)] px-3 py-2"/><input name="email" type="email" defaultValue={author?.email} placeholder="Email" className="rounded border border-[var(--line)] px-3 py-2"/></div><textarea name="bio" defaultValue={author?.bio} placeholder="Bio" className="min-h-24 rounded border border-[var(--line)] px-3 py-2"/><div className="grid gap-4 md:grid-cols-2"><input name="jobTitle" defaultValue={author?.jobTitle} placeholder="Job title" className="rounded border border-[var(--line)] px-3 py-2"/><input name="website" defaultValue={author?.website} placeholder="Website" className="rounded border border-[var(--line)] px-3 py-2"/></div><div className="grid gap-4 md:grid-cols-3"><input name="expertise" defaultValue={author?.expertise.join(", ")} placeholder="Expertise, comma separated" className="rounded border border-[var(--line)] px-3 py-2"/><input name="credentials" defaultValue={author?.credentials.join(", ")} placeholder="Credentials, comma separated" className="rounded border border-[var(--line)] px-3 py-2"/><input name="socialLinks" defaultValue={author?.socialLinks.join(", ")} placeholder="Social links, comma separated" className="rounded border border-[var(--line)] px-3 py-2"/></div><select name="status" defaultValue={author?.status ?? "active"} className="w-fit rounded border border-[var(--line)] px-3 py-2"><option value="active">active</option><option value="inactive">inactive</option></select><Message state={state}/><Submit pending={pending} label={author ? "Update Author" : "Save Author"}/></form>;
+  return <form action={action} encType="multipart/form-data" className="grid gap-5 rounded-lg border border-[var(--line)] bg-white p-5">
+    <input type="hidden" name="authorId" defaultValue={author?.id ?? ""}/>
+
+    <section className="grid gap-3">
+      <div>
+        <h2 className="text-lg font-black">Author identity</h2>
+        <p className="text-sm text-[var(--muted)]">Use the real public name that should appear on articles and author pages.</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_160px]">
+        <label className="grid gap-1 text-sm font-bold">Name<input name="name" required defaultValue={author?.name} placeholder="Author name" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+        <label className="grid gap-1 text-sm font-bold">Slug<input name="slug" defaultValue={author?.slug} placeholder="auto from name" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+        <label className="grid gap-1 text-sm font-bold">Email<input name="email" type="email" required defaultValue={author?.email} placeholder="name@example.com" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+        <label className="grid gap-1 text-sm font-bold">Status<select name="status" defaultValue={author?.status ?? "active"} className="rounded border border-[var(--line)] px-3 py-2 font-normal"><option value="active">active</option><option value="inactive">inactive</option></select></label>
+      </div>
+    </section>
+
+    <section className="grid gap-3 rounded-lg border border-[#d8e6df] bg-[#f7fbf8] p-4">
+      <div>
+        <h2 className="text-lg font-black">Profile photo</h2>
+        <p className="text-sm text-[var(--muted)]">Upload a clear headshot or paste an existing media URL. Alt text should describe the person or team.</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-[1fr_1fr]">
+        <label className="grid gap-1 text-sm font-bold">Upload photo<input name="avatarFile" type="file" accept="image/*" className="rounded border border-[var(--line)] bg-white px-3 py-2 font-normal"/></label>
+        <label className="grid gap-1 text-sm font-bold">Photo URL<input name="avatarUrl" defaultValue={author?.avatar?.url} placeholder="/uploads/author.webp or https://..." className="rounded border border-[var(--line)] bg-white px-3 py-2 font-normal"/></label>
+      </div>
+      <div className="grid gap-4 md:grid-cols-[1fr_120px_120px]">
+        <label className="grid gap-1 text-sm font-bold">Photo alt text<input name="avatarAlt" defaultValue={author?.avatar?.alt} placeholder="Portrait of Author Name" className="rounded border border-[var(--line)] bg-white px-3 py-2 font-normal"/></label>
+        <label className="grid gap-1 text-sm font-bold">Width<input name="avatarWidth" type="number" min="1" defaultValue={author?.avatar?.width ?? 800} className="rounded border border-[var(--line)] bg-white px-3 py-2 font-normal"/></label>
+        <label className="grid gap-1 text-sm font-bold">Height<input name="avatarHeight" type="number" min="1" defaultValue={author?.avatar?.height ?? 800} className="rounded border border-[var(--line)] bg-white px-3 py-2 font-normal"/></label>
+      </div>
+    </section>
+
+    <section className="grid gap-3">
+      <div>
+        <h2 className="text-lg font-black">Professional proof</h2>
+        <p className="text-sm text-[var(--muted)]">Add only verified details. These are used on the author profile and Person schema.</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <label className="grid gap-1 text-sm font-bold">Job title<input name="jobTitle" defaultValue={author?.jobTitle} placeholder="Local Business Research Editor" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+        <label className="grid gap-1 text-sm font-bold">Organization<input name="organization" defaultValue={author?.organization} placeholder="Wikibulz" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+        <label className="grid gap-1 text-sm font-bold">Location<input name="location" defaultValue={author?.location} placeholder="India" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+      </div>
+      <label className="grid gap-1 text-sm font-bold">Bio<textarea name="bio" defaultValue={author?.bio} placeholder="Short public author bio with research focus and editorial experience." className="min-h-28 rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="grid gap-1 text-sm font-bold">Expertise<input name="expertise" defaultValue={author?.expertise.join(", ")} placeholder="Local rankings, Healthcare services, Education services" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/><span className="text-xs font-normal text-[var(--muted)]">Comma separated topics the author can credibly cover.</span></label>
+        <label className="grid gap-1 text-sm font-bold">Credentials<input name="credentials" defaultValue={author?.credentials.join(", ")} placeholder="Editor, Research analyst, Certified specialist" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/><span className="text-xs font-normal text-[var(--muted)]">Roles, certifications, memberships, or verified professional proof.</span></label>
+        <label className="grid gap-1 text-sm font-bold">Education<input name="education" defaultValue={author?.education?.join(", ")} placeholder="Degree, institute, training" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+        <label className="grid gap-1 text-sm font-bold">Awards / recognition<input name="awards" defaultValue={author?.awards?.join(", ")} placeholder="Awards, recognitions, notable mentions" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+      </div>
+    </section>
+
+    <section className="grid gap-3">
+      <div>
+        <h2 className="text-lg font-black">Public links</h2>
+        <p className="text-sm text-[var(--muted)]">Add profile URLs that verify the author. Leave blank when not available.</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="grid gap-1 text-sm font-bold">Website<input name="website" defaultValue={author?.website} placeholder="https://..." className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+        <label className="grid gap-1 text-sm font-bold">Social / proof links<input name="socialLinks" defaultValue={author?.socialLinks.join(", ")} placeholder="LinkedIn URL, X URL, portfolio URL" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+      </div>
+    </section>
+
+    <Message state={state}/>
+    <Submit pending={pending} label={author ? "Update Author" : "Save Author"}/>
+  </form>;
 }
 
 export function PageForm() {

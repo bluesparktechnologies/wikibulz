@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import sharp from "sharp";
 import { isValidObjectId } from "mongoose";
 import { z } from "zod";
 import { findRootSlugConflict } from "@/lib/admin/root-slug-conflicts";
@@ -10,8 +11,9 @@ import { hashPassword } from "@/lib/auth/session";
 import { connectMongo } from "@/lib/db/mongoose";
 import { buildPostUrl, normalizeSlug } from "@/lib/seo/url";
 import { canonicalUrlSchema, categoryFormSchema, locationFormSchema } from "@/lib/validation/content";
-import { AuthorModel, CategoryModel, CityModel, CountryModel, PageModel, PostModel, RedirectModel, SeoRevisionModel, StateModel, TagModel, UserModel } from "@/models/schemas";
-import type { UserRole } from "@/types/content";
+import { AuthorModel, CategoryModel, CityModel, CountryModel, MediaAssetModel, PageModel, PostModel, RedirectModel, SeoRevisionModel, StateModel, TagModel, UserModel } from "@/models/schemas";
+import { getStorageAdapter, validateImageUpload } from "@/services/media";
+import type { MediaAsset, UserRole } from "@/types/content";
 
 export type AdminEntity = { id: string; name: string; slug: string };
 export type AdminActionState = { ok: boolean; message: string; entity?: AdminEntity };
@@ -19,6 +21,7 @@ export type AdminActionState = { ok: boolean; message: string; entity?: AdminEnt
 const initialError = (message: string): AdminActionState => ({ ok: false, message });
 const val = (formData: FormData, key: string) => formData.get(key)?.toString() ?? "";
 const csv = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
+const validMediaUrl = (value: string) => value.startsWith("/") || /^https?:\/\//i.test(value);
 
 const categoryFieldLabels: Record<string, string> = {
   name: "Category name",
@@ -200,6 +203,46 @@ export async function saveTagAction(_state: AdminActionState, formData: FormData
   }
 }
 
+async function storeAuthorAvatar(formData: FormData, fallbackAlt: string) {
+  const file = formData.get("avatarFile");
+  if (!(file instanceof File) || file.size === 0) return null;
+  const validationError = validateImageUpload({ type: file.type, size: file.size });
+  if (validationError) throw new Error(validationError);
+
+  const baseName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-z0-9.-]/gi, "-").toLowerCase();
+  const key = `${Date.now()}-${baseName || "author-profile"}.webp`;
+  const input = Buffer.from(await file.arrayBuffer());
+  const { data, info } = await sharp(input, { failOn: "none" })
+    .rotate()
+    .resize({ width: 800, height: 800, fit: "cover", withoutEnlargement: true })
+    .webp({ quality: 84, effort: 4 })
+    .toBuffer({ resolveWithObject: true });
+
+  const stored = await getStorageAdapter().putBuffer(data, key, "image/webp");
+  const asset = {
+    url: stored.url,
+    alt: val(formData, "avatarAlt").trim() || fallbackAlt,
+    width: info.width,
+    height: info.height,
+    fileSize: data.length,
+    mimeType: "image/webp",
+    provider: stored.provider,
+    usageReferences: ["author-profile"],
+  };
+  await MediaAssetModel.updateOne({ url: asset.url }, asset, { upsert: true });
+  return asset;
+}
+
+function authorAvatarFromForm(formData: FormData, uploaded: Awaited<ReturnType<typeof storeAuthorAvatar>>, fallbackAlt: string): MediaAsset | undefined {
+  if (uploaded) return { url: uploaded.url, alt: uploaded.alt, width: uploaded.width, height: uploaded.height };
+  const url = val(formData, "avatarUrl").trim();
+  if (!url) return undefined;
+  if (!validMediaUrl(url)) throw new Error("Profile photo URL must start with / or https://.");
+  const width = Number(val(formData, "avatarWidth")) || 800;
+  const height = Number(val(formData, "avatarHeight")) || 800;
+  return { url, alt: val(formData, "avatarAlt").trim() || fallbackAlt, width, height };
+}
+
 export async function saveAuthorAction(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
   await requireRole("editor");
   try {
@@ -209,6 +252,8 @@ export async function saveAuthorAction(_state: AdminActionState, formData: FormD
     const slug = normalizeSlug(val(formData, "slug") || name);
     const existing = authorId ? await AuthorModel.findById(authorId).lean() : await AuthorModel.findOne({ slug }).lean();
     if (formData.get("createOnly") === "true" && existing) return initialError("An author with this slug already exists.");
+    const uploadedAvatar = await storeAuthorAvatar(formData, `${name} profile photo`);
+    const avatar = authorAvatarFromForm(formData, uploadedAvatar, `${name} profile photo`);
     const author = await AuthorModel.findOneAndUpdate(
       authorId ? { _id: authorId } : { slug },
       {
@@ -216,9 +261,14 @@ export async function saveAuthorAction(_state: AdminActionState, formData: FormD
         slug,
         email: val(formData, "email"),
         bio: val(formData, "bio"),
+        avatar,
         jobTitle: val(formData, "jobTitle"),
+        organization: val(formData, "organization"),
+        location: val(formData, "location"),
         expertise: csv(val(formData, "expertise")),
         credentials: csv(val(formData, "credentials")),
+        education: csv(val(formData, "education")),
+        awards: csv(val(formData, "awards")),
         socialLinks: csv(val(formData, "socialLinks")),
         website: val(formData, "website"),
         status: val(formData, "status") || "active",
