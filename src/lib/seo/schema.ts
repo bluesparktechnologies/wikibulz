@@ -48,7 +48,11 @@ function articleLocation(post: Post) {
 }
 export function articleSchema(post: Post) {
   const canonical = resolvePostCanonical(post);
-  const reviewer = post.reviewer ? personEntity(post.reviewer) : post.reviewedBy ? { "@type": "Person", name: post.reviewedBy } : undefined;
+  const reviewers = [
+    post.reviewer ? personEntity(post.reviewer) : post.reviewedBy ? { "@type": "Person", name: post.reviewedBy } : undefined,
+    post.factCheckedBy ? personEntity(post.factCheckedBy) : undefined,
+  ].filter(Boolean);
+  const reviewer = reviewers.length === 1 ? reviewers[0] : reviewers.length ? reviewers : undefined;
   const topics = articleTopics(post);
   return compact({
     "@context": "https://schema.org",

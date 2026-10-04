@@ -33,8 +33,8 @@ export function ArticleView({ post, related }: { post: Post; related: Post[] }) 
           <span>{post.readingTime} min read</span>
         </div>
         {post.reviewedBy || post.reviewer || post.factCheckedBy ? <div className="mt-4 grid max-w-3xl gap-2 rounded-lg border border-[var(--line)] bg-white p-4 text-sm text-[#52635b]">
-          {post.reviewedBy || post.reviewer ? <p><strong>Reviewed by:</strong> {post.reviewedBy || post.reviewer?.name}{post.lastReviewedAt ? " on " + new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(post.lastReviewedAt)) : ""}</p> : null}
-          {post.factCheckedBy ? <p><strong>Fact checked by:</strong> {post.factCheckedBy.name}</p> : null}
+          {post.reviewedBy || post.reviewer ? <p><strong>Reviewed by:</strong> {post.reviewer ? <Link href={"/author/" + post.reviewer.slug}>{post.reviewer.name}</Link> : post.reviewedBy}{post.lastReviewedAt ? " on " + new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(post.lastReviewedAt)) : ""}</p> : null}
+          {post.factCheckedBy ? <p><strong>Fact checked by:</strong> <Link href={"/author/" + post.factCheckedBy.slug}>{post.factCheckedBy.name}</Link></p> : null}
         </div> : null}
         <Image src={post.featuredImage.url} alt={post.featuredImage.alt} width={post.featuredImage.width} height={post.featuredImage.height} preload sizes="(min-width: 1024px) 900px, 100vw" className="mt-8 aspect-[16/9] w-full rounded-lg object-cover" />
         <div className="prose-content mt-8 max-w-3xl" dangerouslySetInnerHTML={{ __html: safeContent }} />

@@ -11,6 +11,7 @@ import type { Author, Category, City, Country, LocationEntity, Post, RedirectRec
 const published = (post: Post) => post.status === "published" && post.robotsIndex;
 const byDate = (a: Post, b: Post) => Date.parse(b.publishedAt || b.updatedAt) - Date.parse(a.publishedAt || a.updatedAt);
 const requireDatabaseInProduction = () => { if (process.env.NODE_ENV === "production") throw new Error("MongoDB is required for public content in production; sample content fallback is disabled."); };
+const publicLookupLimit = 50000;
 
 export const getPublishedPosts = cache(async (limit = 20, page = 1) => getCachedJson("posts:published:" + limit + ":" + page, async () => {
   const db = await connectMongo();
@@ -87,12 +88,12 @@ export const getCities = cache(async (): Promise<City[]> => {
   const docs = await CityModel.find({ status: "active" }).populate("country").populate({ path: "state", populate: { path: "country" } }).sort({ name: 1 }).lean();
   return JSON.parse(JSON.stringify(docs)).map(mapCity) as City[];
 });
-export const getPostBySlugs = cache(async (categorySlug: string, postSlug: string) => (await getPublishedPosts(100)).find((post) => post.category.slug === categorySlug && matchesPostSlug(post, postSlug)) ?? null);
+export const getPostBySlugs = cache(async (categorySlug: string, postSlug: string) => (await getPublishedPosts(publicLookupLimit)).find((post) => post.category.slug === categorySlug && matchesPostSlug(post, postSlug)) ?? null);
 export const getPostByCategoryPath = cache(async (path: string[], postSlug: string) => {
   const requestedPath = path.join("/");
-  return (await getPublishedPosts(100)).find((post) => categoryPath(post.category).join("/") === requestedPath && matchesPostSlug(post, postSlug)) ?? null;
+  return (await getPublishedPosts(publicLookupLimit)).find((post) => categoryPath(post.category).join("/") === requestedPath && matchesPostSlug(post, postSlug)) ?? null;
 });
-export const getPostBySlug = cache(async (slug: string) => (await getPublishedPosts(500)).find((post) => matchesPostSlug(post, slug)) ?? null);
+export const getPostBySlug = cache(async (slug: string) => (await getPublishedPosts(publicLookupLimit)).find((post) => matchesPostSlug(post, slug)) ?? null);
 export const getPostById = cache(async (id: string) => (await getAllPostsForAdmin(200)).find((post) => post.id === id) ?? null);
 export const getCategoryBySlug = cache(async (slug: string) => (await getCategories()).find((category) => category.slug === slug || category.categoryPath?.join("/") === slug) ?? null);
 export const getChildCategories = cache(async (parentId: string) => (await getCategories()).filter((category) => category.parentCategory === parentId).sort((a, b) => a.name.localeCompare(b.name)));
@@ -102,7 +103,7 @@ export const getPostsByCategory = cache(async (slug: string, page = 1) => {
   const canonicalSlug = category?.slug ?? slug.split("/").filter(Boolean).at(-1) ?? slug;
   const requestedPath = category?.categoryPath?.join("/") ?? slug;
   const categorySlugs = getCategoryFamilySlugs(categories, canonicalSlug);
-  return (await getPublishedPosts(100))
+  return (await getPublishedPosts(publicLookupLimit))
     .filter((post) => {
       const postCategoryPath = categoryPath(post.category);
       return categorySlugs.has(post.category.slug) || postCategoryPath.join("/") === requestedPath || postCategoryPath.includes(canonicalSlug);
@@ -111,7 +112,7 @@ export const getPostsByCategory = cache(async (slug: string, page = 1) => {
     .slice((page - 1) * 12, page * 12);
 });
 export const getAuthorBySlug = cache(async (slug: string) => (await getAuthors()).find((author) => author.slug === slug) ?? null);
-export const getPostsByAuthor = cache(async (slug: string) => (await getPublishedPosts(100)).filter((post) => post.author.slug === slug));
+export const getPostsByAuthor = cache(async (slug: string) => (await getPublishedPosts(publicLookupLimit)).filter((post) => post.author.slug === slug));
 export const getLocationBySlug = cache(async (slug: string): Promise<{ type: "country"; location: Country } | { type: "state"; location: StateRegion } | { type: "city"; location: City } | null> => {
   const [country, state, city] = await Promise.all([
     getCountries().then((items) => items.find((item) => item.slug === slug) ?? null),
@@ -124,7 +125,7 @@ export const getLocationBySlug = cache(async (slug: string): Promise<{ type: "co
   return null;
 });
 export const getPostsByLocation = cache(async (location: LocationEntity, type: "country" | "state" | "city") => {
-  return (await getPublishedPosts(500)).filter((post) => {
+  return (await getPublishedPosts(publicLookupLimit)).filter((post) => {
     if (type === "country") return post.country?.id === location.id || post.state?.country.id === location.id || post.city?.country.id === location.id;
     if (type === "state") return post.state?.id === location.id || post.city?.state.id === location.id;
     return post.city?.id === location.id;
@@ -135,8 +136,8 @@ export const getCategoriesByLocation = cache(async (location: LocationEntity, ty
   const categoryIds = new Set(posts.map((post) => post.category.id));
   return (await getCategories()).filter((category) => categoryIds.has(category.id)).sort((a, b) => a.name.localeCompare(b.name));
 });
-export const getRelatedPosts = cache(async (post: Post) => (await getPublishedPosts(100)).filter((candidate) => candidate.id !== post.id && (candidate.category.slug === post.category.slug || candidate.tags.some((tag) => post.tags.map((t) => t.slug).includes(tag.slug)) || post.relatedPosts.includes(candidate.id))).slice(0, 4));
-export const searchPosts = cache(async (query: string) => { const needle = query.toLowerCase(); return (await getPublishedPosts(100)).filter((post) => [post.title, post.excerpt, post.focusKeyword, post.category.name, ...post.secondaryKeywords].join(" ").toLowerCase().includes(needle)).slice(0, 20); });
+export const getRelatedPosts = cache(async (post: Post) => (await getPublishedPosts(publicLookupLimit)).filter((candidate) => candidate.id !== post.id && (candidate.category.slug === post.category.slug || candidate.tags.some((tag) => post.tags.map((t) => t.slug).includes(tag.slug)) || post.relatedPosts.includes(candidate.id))).slice(0, 4));
+export const searchPosts = cache(async (query: string) => { const needle = query.toLowerCase(); return (await getPublishedPosts(publicLookupLimit)).filter((post) => [post.title, post.excerpt, post.focusKeyword, post.category.name, ...post.secondaryKeywords].join(" ").toLowerCase().includes(needle)).slice(0, 20); });
 export const getStaticPage = cache(async (slug: string): Promise<StaticPage | null> => {
   const db = await connectMongo();
   if (!db) { requireDatabaseInProduction(); return staticPages.find((page) => page.slug === slug) ?? null; }
