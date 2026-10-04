@@ -50,14 +50,15 @@ function SeoHint({ label, value, ideal, limit }: { label: string; value: string;
 }
 
 type EntityKind = "author" | "category";
-type EntityCreatorProps = { kind: EntityKind; onCancel: () => void; onCreated: (entity: AdminEntity) => void };
+type EntityCreatorProps = { kind: EntityKind; categories?: Array<Pick<Category, "id" | "name" | "slug">>; onCancel: () => void; onCreated: (entity: AdminEntity) => void };
 
-function EntityCreator({ kind, onCancel, onCreated }: EntityCreatorProps) {
+function EntityCreator({ kind, categories = [], onCancel, onCreated }: EntityCreatorProps) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
   const [description, setDescription] = useState("");
+  const [parentCategory, setParentCategory] = useState("");
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   const isAuthor = kind === "author";
@@ -84,6 +85,7 @@ function EntityCreator({ kind, onCancel, onCreated }: EntityCreatorProps) {
       formData.set("status", "active");
     } else {
       formData.set("description", description.trim());
+      formData.set("parentCategory", parentCategory);
       formData.set("seoTitle", "");
       formData.set("metaDescription", "");
       formData.set("canonicalUrl", "");
@@ -101,7 +103,17 @@ function EntityCreator({ kind, onCancel, onCreated }: EntityCreatorProps) {
   return <div className="grid gap-3 rounded-lg border border-dashed border-[var(--brand)] bg-[#eef5f1] p-3">
     <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-black">New {isAuthor ? "Author" : "Category"}</p><button type="button" onClick={onCancel} className="text-xs font-bold text-[var(--brand)]">Cancel</button></div>
     <div className="grid gap-3 md:grid-cols-2"><input value={name} onChange={(event) => setName(event.target.value)} placeholder={`${isAuthor ? "Author" : "Category"} name`} className="rounded border border-[var(--line)] bg-white px-3 py-2" /><input value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="Slug (auto-generated if blank)" className="rounded border border-[var(--line)] bg-white px-3 py-2" /></div>
-    {isAuthor ? <><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="Author email" className="rounded border border-[var(--line)] bg-white px-3 py-2" /><textarea value={bio} onChange={(event) => setBio(event.target.value)} placeholder="Short bio (optional)" className="min-h-20 rounded border border-[var(--line)] bg-white px-3 py-2" /></> : <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Category description (at least 30 characters)" className="min-h-20 rounded border border-[var(--line)] bg-white px-3 py-2" />}
+    {isAuthor ? <><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="Author email" className="rounded border border-[var(--line)] bg-white px-3 py-2" /><textarea value={bio} onChange={(event) => setBio(event.target.value)} placeholder="Short bio (optional)" className="min-h-20 rounded border border-[var(--line)] bg-white px-3 py-2" /></> : <>
+      <label className="grid gap-1 text-xs font-black uppercase tracking-wide text-[var(--muted)]">
+        Parent category
+        <select value={parentCategory} onChange={(event) => setParentCategory(event.target.value)} className="rounded border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-[var(--foreground)]">
+          <option value="">Top-level category</option>
+          {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+        </select>
+        <span className="font-semibold normal-case tracking-normal">Blank rakho to main category banegi. Parent select karo to subcategory banegi.</span>
+      </label>
+      <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Category description (at least 30 characters)" className="min-h-20 rounded border border-[var(--line)] bg-white px-3 py-2" />
+    </>}
     {message ? <p className="text-sm font-bold text-red-700" role="status">{message}</p> : null}
     <button type="button" disabled={pending} onClick={createEntity} className="w-fit rounded-md bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{pending ? "Creating..." : `Create ${isAuthor ? "Author" : "Category"}`}</button>
   </div>;
@@ -309,7 +321,7 @@ export function PostEditor({ authors, categories, countries, states, cities, tag
             <select name="category" required value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} className="rounded border border-[var(--line)] bg-white px-3 py-2">
               {availableCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
             </select>
-            {creatingEntity === "category" ? <EntityCreator kind="category" onCancel={() => setCreatingEntity(null)} onCreated={(category) => { setAvailableCategories((items) => items.some((item) => item.id === category.id) ? items : [...items, category]); setSelectedCategory(category.id); }} /> : null}
+            {creatingEntity === "category" ? <EntityCreator kind="category" categories={availableCategories} onCancel={() => setCreatingEntity(null)} onCreated={(category) => { setAvailableCategories((items) => items.some((item) => item.id === category.id) ? items : [...items, category]); setSelectedCategory(category.id); }} /> : null}
           </div>
         </div>
         <div className="grid gap-5 lg:grid-cols-3">
