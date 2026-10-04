@@ -1,4 +1,4 @@
-import type { Author, Category, MediaAsset, Post, RedirectRecord, StaticPage, Tag } from "@/types/content";
+import type { Author, Category, City, Country, MediaAsset, Post, RedirectRecord, StateRegion, StaticPage, Tag } from "@/types/content";
 
 type PlainRecord = Record<string, unknown>;
 
@@ -91,6 +91,62 @@ export function mapTag(value: unknown): Tag {
   };
 }
 
+export function mapCountry(value: unknown): Country {
+  const record = asRecord(value);
+  return {
+    id: idOf(record),
+    name: asString(record.name),
+    slug: asString(record.slug),
+    description: asString(record.description),
+    seoTitle: asString(record.seoTitle) || undefined,
+    metaDescription: asString(record.metaDescription) || undefined,
+    canonicalUrl: asString(record.canonicalUrl) || undefined,
+    indexStatus: asString(record.indexStatus) === "noindex" ? "noindex" : "index",
+    status: asString(record.status) === "inactive" ? "inactive" : "active",
+    createdAt: asIsoDate(record.createdAt),
+    updatedAt: asIsoDate(record.updatedAt),
+  };
+}
+
+export function mapState(value: unknown): StateRegion {
+  const record = asRecord(value);
+  return {
+    id: idOf(record),
+    name: asString(record.name),
+    slug: asString(record.slug),
+    description: asString(record.description),
+    country: mapCountry(record.country),
+    seoTitle: asString(record.seoTitle) || undefined,
+    metaDescription: asString(record.metaDescription) || undefined,
+    canonicalUrl: asString(record.canonicalUrl) || undefined,
+    indexStatus: asString(record.indexStatus) === "noindex" ? "noindex" : "index",
+    status: asString(record.status) === "inactive" ? "inactive" : "active",
+    createdAt: asIsoDate(record.createdAt),
+    updatedAt: asIsoDate(record.updatedAt),
+  };
+}
+
+export function mapCity(value: unknown): City {
+  const record = asRecord(value);
+  const state = mapState(record.state);
+  const country = record.country ? mapCountry(record.country) : state.country;
+  return {
+    id: idOf(record),
+    name: asString(record.name),
+    slug: asString(record.slug),
+    description: asString(record.description),
+    state,
+    country,
+    seoTitle: asString(record.seoTitle) || undefined,
+    metaDescription: asString(record.metaDescription) || undefined,
+    canonicalUrl: asString(record.canonicalUrl) || undefined,
+    indexStatus: asString(record.indexStatus) === "noindex" ? "noindex" : "index",
+    status: asString(record.status) === "inactive" ? "inactive" : "active",
+    createdAt: asIsoDate(record.createdAt),
+    updatedAt: asIsoDate(record.updatedAt),
+  };
+}
+
 export function mapPost(value: unknown): Post {
   const record = asRecord(value);
   return {
@@ -104,6 +160,9 @@ export function mapPost(value: unknown): Post {
     author: mapAuthor(record.author),
     reviewer: record.reviewer ? mapAuthor(record.reviewer) : undefined,
     factCheckedBy: record.factCheckedBy ? mapAuthor(record.factCheckedBy) : undefined,
+    country: record.country ? mapCountry(record.country) : undefined,
+    state: record.state ? mapState(record.state) : undefined,
+    city: record.city ? mapCity(record.city) : undefined,
     category: mapCategory(record.category),
     tags: asArray(record.tags).map(mapTag),
     status: ["draft", "review", "scheduled", "published", "archived", "trash"].includes(asString(record.status))
@@ -166,6 +225,10 @@ export function mapPost(value: unknown): Post {
     lastReviewedAt: record.lastReviewedAt ? asIsoDate(record.lastReviewedAt) : undefined,
     redirectHistory: asArray(record.redirectHistory).map((item) => asString(item)).filter(Boolean),
     createdAt: asIsoDate(record.createdAt),
+    wikibulzScore: typeof record.wikibulzScore === "number" ? record.wikibulzScore : undefined,
+    scoreBreakdown: record.scoreBreakdown && typeof record.scoreBreakdown === "object" ? record.scoreBreakdown as Record<string, number> : undefined,
+    scoreMethodologyVersion: asString(record.scoreMethodologyVersion) || undefined,
+    scoreUpdatedAt: record.scoreUpdatedAt ? asIsoDate(record.scoreUpdatedAt) : undefined,
   };
 }
 

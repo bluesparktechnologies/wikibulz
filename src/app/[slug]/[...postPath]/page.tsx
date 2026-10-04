@@ -3,7 +3,7 @@ import { ArticleView } from "@/components/blog/article";
 import { Footer, SiteHeader } from "@/components/blog/site-shell";
 import { JsonLd } from "@/components/seo/json-ld";
 import LoginPage from "@/app/admin/login/page";
-import { buildPostUrl, normalizePath, resolveCategoryCanonical, resolvePostCanonical } from "@/lib/seo/url";
+import { buildCategoryUrl, buildLocationUrl, buildPostUrl, normalizePath, resolvePostCanonical } from "@/lib/seo/url";
 import { articleSchema, breadcrumbSchema, faqSchema } from "@/lib/seo/schema";
 import { generatePostMetadata } from "@/lib/seo/metadata";
 import { getPostByCategoryPath, getPostBySlugs, getRedirects, getRelatedPosts } from "@/repositories/content.repository";
@@ -43,5 +43,13 @@ export default async function PostPage({ params }: Props) {
   if (officialUrl !== requestedPath) permanentRedirect(officialUrl);
   const related = await getRelatedPosts(post);
   const faq = faqSchema(post);
-  return <><SiteHeader /><JsonLd data={articleSchema(post)} /><JsonLd data={breadcrumbSchema([{ name: "Home", url: "/" }, { name: post.category.name, url: resolveCategoryCanonical(post.category) }, { name: post.title, url: resolvePostCanonical(post) }])} />{faq ? <JsonLd data={faq} /> : null}<ArticleView post={post} related={related} /><Footer /></>;
+  const breadcrumbs = [
+    { name: "Home", url: "/" },
+    post.country ? { name: post.country.name, url: buildLocationUrl(post.country) } : null,
+    post.state ? { name: post.state.name, url: buildLocationUrl(post.state) } : null,
+    post.city ? { name: post.city.name, url: buildLocationUrl(post.city) } : null,
+    { name: post.category.name, url: buildCategoryUrl(post.category) },
+    { name: post.title, url: resolvePostCanonical(post) },
+  ].filter((item): item is { name: string; url: string } => Boolean(item));
+  return <><SiteHeader /><JsonLd data={articleSchema(post)} /><JsonLd data={breadcrumbSchema(breadcrumbs)} />{faq ? <JsonLd data={faq} /> : null}<ArticleView post={post} related={related} /><Footer /></>;
 }

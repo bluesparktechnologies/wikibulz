@@ -15,7 +15,7 @@ const internalPlanningPhrases = [
 
 const weakTitlePatterns = [
   /practical context for readers/i,
-  /what it means for technology readers/i,
+  /what it means for readers/i,
   /update ideas for/i,
 ];
 

@@ -6,6 +6,7 @@ import sharp from "sharp";
 import { isValidObjectId } from "mongoose";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/guards";
+import { findRootSlugConflict } from "@/lib/admin/root-slug-conflicts";
 import { connectMongo } from "@/lib/db/mongoose";
 import { calculateReadingMinutes, calculateWordCount, ensureHeadingIds, generateTableOfContents } from "@/lib/content/processing";
 import { sanitizeArticleHtml } from "@/lib/seo/analysis";
@@ -13,7 +14,7 @@ import { buildPostUrl, normalizeSlug } from "@/lib/seo/url";
 import { structuredRawValues } from "@/lib/admin/structured-fields";
 import { postFormSchema } from "@/lib/validation/content";
 import { invalidatePost } from "@/lib/cache/invalidation";
-import { InternalLinkModel, MediaAssetModel, PostModel, RedirectModel, TagModel, postCategoryPopulate } from "@/models/schemas";
+import { InternalLinkModel, MediaAssetModel, PostModel, RedirectModel, TagModel, postCategoryPopulate, postLocationPopulate } from "@/models/schemas";
 import { PublishingQueueModel, RefreshCandidateModel } from "@/modules/autoblog/models/schemas";
 import { getPostById } from "@/repositories/content.repository";
 import { mapPost } from "@/repositories/mappers";
@@ -64,6 +65,9 @@ function parsePostForm(formData: FormData) {
     featuredImageUrl: formValue(formData, "featuredImageUrl"),
     featuredImageAlt: formValue(formData, "featuredImageAlt"),
     author: formValue(formData, "author"),
+    country: formValue(formData, "country"),
+    state: formValue(formData, "state"),
+    city: formValue(formData, "city"),
     category: formValue(formData, "category"),
     status: formValue(formData, "status") || "draft",
     publishedAt: formValue(formData, "publishedAt"),
@@ -186,6 +190,11 @@ export async function savePostAction(_state: PostActionState, formData: FormData
   }
   if (!isValidObjectId(parsed.author)) return { ok: false, message: "Author: select a valid active author." };
   if (!isValidObjectId(parsed.category)) return { ok: false, message: "Category: select a valid category." };
+  if (parsed.country && !isValidObjectId(parsed.country)) return { ok: false, message: "Country: select a valid country." };
+  if (parsed.state && !isValidObjectId(parsed.state)) return { ok: false, message: "State: select a valid state." };
+  if (parsed.city && !isValidObjectId(parsed.city)) return { ok: false, message: "City: select a valid city." };
+  const rootConflict = await findRootSlugConflict(parsed.slug, "post", id || undefined);
+  if (rootConflict) return { ok: false, message: rootConflict };
   const safeContent = ensureHeadingIds(sanitizeArticleHtml(parsed.content, { articleBody: true }));
   let previous: Awaited<ReturnType<typeof getPostById>> = null;
   let uploadedImage: Awaited<ReturnType<typeof storeFeaturedImage>> = null;
@@ -220,6 +229,9 @@ export async function savePostAction(_state: PostActionState, formData: FormData
       height: uploadedImage?.height ?? previous?.featuredImage.height ?? 900,
     },
     author: parsed.author,
+    country: parsed.country ?? null,
+    state: parsed.state ?? null,
+    city: parsed.city ?? null,
     category: parsed.category,
     tags: tagIds,
     status: parsed.status,
@@ -257,9 +269,10 @@ export async function savePostAction(_state: PostActionState, formData: FormData
       ? await PostModel.findByIdAndUpdate(id, payload, { new: true, runValidators: true })
         .populate("author reviewer factCheckedBy tags")
         .populate(postCategoryPopulate)
+        .populate(postLocationPopulate)
         .lean()
       : await PostModel.create(payload).then((doc) =>
-        PostModel.findById(doc._id).populate("author reviewer factCheckedBy tags").populate(postCategoryPopulate).lean(),
+        PostModel.findById(doc._id).populate("author reviewer factCheckedBy tags").populate(postCategoryPopulate).populate(postLocationPopulate).lean(),
       );
   } catch (error) {
     return { ok: false, message: postSaveError(error) };
@@ -296,7 +309,7 @@ export async function publishPostAction(formData: FormData) {
     id,
     { $set: { status: "published", publishedAt: new Date(), scheduledAt: null, robotsIndex: true, robotsFollow: true } },
     { returnDocument: "after", runValidators: true },
-  ).populate("author reviewer factCheckedBy tags").populate(postCategoryPopulate).lean();
+  ).populate("author reviewer factCheckedBy tags").populate(postCategoryPopulate).populate(postLocationPopulate).lean();
   if (!doc) throw new Error("Post not found.");
   const post = mapPost(JSON.parse(JSON.stringify(doc)));
   revalidatePath("/");
@@ -315,7 +328,7 @@ export async function movePostToTrashAction(formData: FormData) {
     id,
     { $set: { status: "trash", robotsIndex: false, robotsFollow: false, scheduledAt: null } },
     { new: true, runValidators: true },
-  ).populate("author reviewer factCheckedBy tags").populate(postCategoryPopulate).lean();
+  ).populate("author reviewer factCheckedBy tags").populate(postCategoryPopulate).populate(postLocationPopulate).lean();
   if (!doc) throw new Error("Post not found.");
   await invalidatePost(mapPost(JSON.parse(JSON.stringify(doc))));
   revalidatePath("/");
@@ -333,7 +346,7 @@ export async function restorePostFromTrashAction(formData: FormData) {
     { _id: id, status: "trash" },
     { $set: { status: "draft", publishedAt: null, scheduledAt: null, robotsIndex: false, robotsFollow: true } },
     { new: true, runValidators: true },
-  ).populate("author reviewer factCheckedBy tags").populate(postCategoryPopulate).lean();
+  ).populate("author reviewer factCheckedBy tags").populate(postCategoryPopulate).populate(postLocationPopulate).lean();
   if (!doc) throw new Error("Trashed post not found.");
   await invalidatePost(mapPost(JSON.parse(JSON.stringify(doc))));
   revalidatePath("/admin/posts");
@@ -347,7 +360,7 @@ export async function permanentlyDeletePostAction(formData: FormData) {
   if (!db) throw new Error("MongoDB is not configured.");
   const id = formData.get("id")?.toString();
   if (!id) throw new Error("Post id is required.");
-  const doc = await PostModel.findOne({ _id: id, status: "trash" }).populate("author reviewer factCheckedBy tags").populate(postCategoryPopulate).lean();
+  const doc = await PostModel.findOne({ _id: id, status: "trash" }).populate("author reviewer factCheckedBy tags").populate(postCategoryPopulate).populate(postLocationPopulate).lean();
   if (!doc) throw new Error("Only posts in Trash can be permanently deleted.");
   const post = mapPost(JSON.parse(JSON.stringify(doc)));
   const postId = doc._id;

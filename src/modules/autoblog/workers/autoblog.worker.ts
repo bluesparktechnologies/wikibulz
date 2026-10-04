@@ -85,46 +85,46 @@ type SelectedKeyword = KeywordMetric & { id?: string; opportunityScore?: number;
 
 const diverseFallbackAngles = [
   {
-    topic: "Artificial Intelligence",
-    title: "How small teams are using practical AI tools without rebuilding their whole workflow",
-    snippet: "A practical AI adoption story for readers who want useful software decisions, not hype.",
-    keywords: ["AI tools for small teams", "practical AI adoption", "AI workflow software"],
+    topic: "Dentists",
+    title: "Best dentists in Lucknow: how readers should compare clinics before booking",
+    snippet: "A local healthcare guide focused on clinic services, credentials, access, and trust signals.",
+    keywords: ["best dentists in Lucknow", "dental clinics in Lucknow", "Lucknow dentist guide"],
   },
   {
-    topic: "Cybersecurity",
-    title: "Why passkeys and safer sign-in flows are becoming a normal business priority",
-    snippet: "A cybersecurity explainer about everyday account protection and practical adoption steps.",
-    keywords: ["passkeys for business", "secure sign in", "cybersecurity basics"],
+    topic: "IAS Coaching",
+    title: "Best IAS coaching in Lucknow: what students should check first",
+    snippet: "A local education guide focused on faculty, mentoring, test series, and fee transparency.",
+    keywords: ["best IAS coaching in Lucknow", "UPSC coaching Lucknow", "IAS institutes Lucknow"],
   },
   {
-    topic: "Cloud Computing",
-    title: "What businesses should check before moving more apps to cloud platforms",
-    snippet: "A cloud computing guide focused on cost, reliability, security, and vendor fit.",
-    keywords: ["cloud migration checklist", "cloud platform planning", "cloud cost control"],
+    topic: "SEO Agencies",
+    title: "Best SEO companies in Lucknow: how businesses should shortlist agencies",
+    snippet: "A local business services guide focused on reporting, transparency, strategy, and fit.",
+    keywords: ["best SEO companies in Lucknow", "SEO agencies Lucknow", "digital marketing Lucknow"],
   },
   {
-    topic: "Software",
-    title: "The software maintenance habits that prevent slow websites and broken workflows",
-    snippet: "A software operations article about updates, monitoring, dependencies, and technical debt.",
-    keywords: ["software maintenance", "website performance", "technical debt"],
+    topic: "Hospitals",
+    title: "Best hospitals in Lucknow: practical factors for comparing care options",
+    snippet: "A local healthcare guide focused on departments, emergency access, patient support, and transparency.",
+    keywords: ["best hospitals in Lucknow", "hospitals Lucknow", "Lucknow healthcare guide"],
   },
   {
-    topic: "Developer Tools",
-    title: "How modern developer tools are changing the way teams ship product updates",
-    snippet: "A developer tools article about faster releases, code review, testing, and team workflows.",
-    keywords: ["developer tools", "software release workflow", "code review tools"],
+    topic: "Schools",
+    title: "Best schools in Lucknow: what parents should compare beyond claims",
+    snippet: "A local education guide focused on curriculum, safety, facilities, fees, and parent-facing information.",
+    keywords: ["best schools in Lucknow", "schools in Lucknow", "Lucknow school guide"],
   },
   {
-    topic: "Startups",
-    title: "The technology stack choices early-stage startups should make carefully",
-    snippet: "A startup technology article about choosing simple, scalable software decisions early.",
-    keywords: ["startup technology stack", "startup software tools", "scalable web apps"],
+    topic: "Digital Marketing Agencies",
+    title: "Best digital marketing agencies in Lucknow: a local selection checklist",
+    snippet: "A business services guide focused on deliverables, reporting, pricing clarity, and realistic outcomes.",
+    keywords: ["digital marketing agencies Lucknow", "marketing agencies Lucknow", "local business marketing Lucknow"],
   },
   {
-    topic: "Digital Marketing",
-    title: "How search behavior changes when customers start using AI answers",
-    snippet: "A digital marketing and discovery article about search journeys, content usefulness, and brand trust.",
-    keywords: ["AI search behavior", "digital marketing strategy", "content discovery"],
+    topic: "Preschools",
+    title: "Best preschools in Lucknow: parent-friendly comparison factors",
+    snippet: "A local education guide focused on safety, staff communication, activities, location, and fees.",
+    keywords: ["best preschools in Lucknow", "play schools Lucknow", "Lucknow preschool guide"],
   },
 ];
 
@@ -240,7 +240,7 @@ function keywordOnlyTopics(profile: { primaryNiche: string; secondaryTopics: str
   const topics = Array.from(new Set((rawTopics.length ? rawTopics : diverseFallbackAngles.map((angle) => angle.topic)).map((topic) => topic.trim()).filter(Boolean)));
   return topics.slice(0, 20).map((topic, index): NewsTopic => {
     const fallback = diverseFallbackAngles.find((angle) => normalizeKeyword(angle.topic) === normalizeKeyword(topic)) ?? diverseFallbackAngles[index % diverseFallbackAngles.length];
-    const genericTopic = ["technology news", "artificial intelligence", "cybersecurity", "cloud computing", "startups", "software", "developer tools", "digital marketing", "seo technology"].includes(normalizeKeyword(topic));
+    const genericTopic = ["local rankings", "healthcare", "education", "business services", "dentists", "ias coaching", "seo agencies", "hospitals", "schools", "digital marketing agencies"].includes(normalizeKeyword(topic));
     return {
       title: genericTopic ? fallback.title : topic,
       url: publicTopicUrl(),
@@ -269,12 +269,12 @@ async function buildGenerationInput(runId: string): Promise<ArticleGenerationInp
       selected?.keyword,
       ...(serp?.relatedSearches ?? []),
       ...(serp?.peopleAlsoAsk ?? []),
-      "technology news",
-      "software trends",
-      "AI updates",
-      "cybersecurity updates",
-      "cloud computing",
-      "developer tools",
+      "local rankings",
+      "city guide",
+      "service comparison",
+      "reader checklist",
+      "verified information",
+      "local service providers",
     ].filter((item): item is string => Boolean(item)))).slice(0, 8),
     keywordMetrics: selected ?? {},
     serp,
@@ -501,7 +501,7 @@ async function processStage(payload: AutoblogJobPayload) {
     if (draftArtifact?.draft) {
       const generationInput = await buildGenerationInput(payload.runId);
       const imagePlan = await planFeaturedImage(draftArtifact.draft, generationInput);
-      const image = settings.imageGenerationMode === "DISABLED" ? null : await imageProvider.generateFeaturedImage({ title: draftArtifact.draft.title, brief: imagePlan.prompt, style: "modern editorial technology cover, balanced detail, realistic, no text overlay" });
+      const image = settings.imageGenerationMode === "DISABLED" ? null : await imageProvider.generateFeaturedImage({ title: draftArtifact.draft.title, brief: imagePlan.prompt, style: "modern local guide cover, balanced detail, realistic, no text overlay" });
       if (image?.ok) {
         const post = await createOrUpdateAutomatedPost({ draft: draftArtifact.draft, generationInput, featuredImage: { ...image.data, caption: imagePlan.caption }, status: settings.publishingMode === "SAVE_DRAFT" ? "draft" : "review" });
         await setAutomationRunPost(payload.runId, String(post._id));

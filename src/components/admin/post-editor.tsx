@@ -4,7 +4,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { AdminMedia } from "@/repositories/admin.repository";
-import type { Author, Category, Post, Tag } from "@/types/content";
+import type { Author, Category, City, Country, Post, StateRegion, Tag } from "@/types/content";
 import { savePostAction, type PostActionState } from "@/app/admin/posts/actions";
 import { saveAuthorAction, saveCategoryAction, type AdminEntity } from "@/app/admin/actions";
 import { normalizeCategorySlug } from "@/lib/seo/category-slug";
@@ -46,7 +46,7 @@ function readSavedPostDraft(): SavedPostDraft | null {
 function SeoHint({ label, value, ideal, limit }: { label: string; value: string; ideal: string; limit: number }) {
   const length = value.length;
   const tone = length === 0 ? "text-[#617269]" : length > limit ? "text-red-700" : "text-green-700";
-  return <p className={`text-xs font-bold ${tone}`}>{label}: {length}/{limit} · {ideal}</p>;
+  return <p className={`text-xs font-bold ${tone}`}>{label}: {length}/{limit} - {ideal}</p>;
 }
 
 type EntityKind = "author" | "category";
@@ -107,7 +107,7 @@ function EntityCreator({ kind, onCancel, onCreated }: EntityCreatorProps) {
   </div>;
 }
 
-export function PostEditor({ authors, categories, tags, media, post }: { authors: Author[]; categories: Category[]; tags: Tag[]; media: AdminMedia[]; post?: Post }) {
+export function PostEditor({ authors, categories, countries, states, cities, tags, media, post }: { authors: Author[]; categories: Category[]; countries: Country[]; states: StateRegion[]; cities: City[]; tags: Tag[]; media: AdminMedia[]; post?: Post }) {
   const [state, action, pending] = useActionState(savePostAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const [slugTouched, setSlugTouched] = useState(Boolean(post?.slug));
@@ -138,7 +138,6 @@ export function PostEditor({ authors, categories, tags, media, post }: { authors
   const watchedMeta = useWatch({ control, name: "metaDescription" }) ?? "";
   const previewTitle = watchedSeoTitle || watchedTitle || "SEO title preview";
   const previewDescription = watchedMeta || watchedExcerpt || "Meta description preview";
-  const selectedCategorySlug = useMemo(() => availableCategories.find((category) => category.id === selectedCategory)?.slug ?? availableCategories[0]?.slug ?? "category", [availableCategories, selectedCategory]);
   const slugField = register("slug");
   const contentStats = useMemo(() => {
     const words = stripHtml(contentHtml).split(" ").filter(Boolean).length;
@@ -279,7 +278,7 @@ export function PostEditor({ authors, categories, tags, media, post }: { authors
         </label>
         <div className="grid min-w-0 gap-2 text-sm font-bold">
           Article Body
-          {draftReady ? <RichEditor name="content" initialHtml={contentHtml} media={media} onHtmlChange={handleContentChange} /> : <div className="min-h-40 rounded-xl border border-[var(--line)] bg-white p-4 text-sm text-[var(--muted)]">Restoring your local draft…</div>}
+          {draftReady ? <RichEditor name="content" initialHtml={contentHtml} media={media} onHtmlChange={handleContentChange} /> : <div className="min-h-40 rounded-xl border border-[var(--line)] bg-white p-4 text-sm text-[var(--muted)]">Restoring your local draft...</div>}
           {!post && hasLocalDraft ? <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#c9dfd7] bg-[#eef5f1] px-3 py-2 text-xs font-bold text-[#315248]"><span>Draft saved on this device. It will restore after a refresh.</span><button type="button" onClick={discardDraft} className="text-xs font-black text-[var(--brand)] underline">Discard local draft</button></div> : null}
         </div>
         <div className="grid gap-3 rounded-lg border border-[var(--line)] bg-white p-4 text-sm">
@@ -312,6 +311,29 @@ export function PostEditor({ authors, categories, tags, media, post }: { authors
             </select>
             {creatingEntity === "category" ? <EntityCreator kind="category" onCancel={() => setCreatingEntity(null)} onCreated={(category) => { setAvailableCategories((items) => items.some((item) => item.id === category.id) ? items : [...items, category]); setSelectedCategory(category.id); }} /> : null}
           </div>
+        </div>
+        <div className="grid gap-5 lg:grid-cols-3">
+          <label className="grid gap-2 text-sm font-bold">
+            Country
+            <select name="country" defaultValue={post?.country?.id ?? ""} className="rounded border border-[var(--line)] bg-white px-3 py-2">
+              <option value="">None</option>
+              {countries.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-bold">
+            State
+            <select name="state" defaultValue={post?.state?.id ?? ""} className="rounded border border-[var(--line)] bg-white px-3 py-2">
+              <option value="">None</option>
+              {states.map((stateRegion) => <option key={stateRegion.id} value={stateRegion.id}>{stateRegion.name}</option>)}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-bold">
+            City
+            <select name="city" defaultValue={post?.city?.id ?? ""} className="rounded border border-[var(--line)] bg-white px-3 py-2">
+              <option value="">None</option>
+              {cities.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
+            </select>
+          </label>
         </div>
         <div className="grid gap-5 lg:grid-cols-3">
           <label className="grid gap-2 text-sm font-bold">
@@ -395,7 +417,7 @@ export function PostEditor({ authors, categories, tags, media, post }: { authors
         <h2 className="text-lg font-black">Search SEO</h2>
         <div className="rounded-lg border border-[var(--line)] bg-white p-4">
           <p className="line-clamp-1 text-lg font-bold text-[#1a0dab]">{previewTitle}</p>
-          <p className="mt-1 text-xs text-[#006621]">https://example.com/{selectedCategorySlug}/{watchedSlug || "post-slug"}</p>
+          <p className="mt-1 text-xs text-[#006621]">https://wikibulz.com/{watchedSlug || "post-slug"}</p>
           <p className="mt-2 text-sm leading-6 text-[#4d5156]">{previewDescription}</p>
         </div>
         <div className="grid gap-5 lg:grid-cols-2">

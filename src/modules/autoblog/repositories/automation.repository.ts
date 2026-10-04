@@ -66,10 +66,10 @@ export const defaultAutomationSettings: AutomationSettings = {
   useNewsDiscovery: true,
   publishingMode: "SAVE_FOR_REVIEW",
   plagiarismMode: "LLM_RISK_ONLY",
-  country: "US",
+  country: "IN",
   language: "en",
-  primaryNiche: "Technology News",
-  allowedCategories: ["Technology News", "Artificial Intelligence", "Cybersecurity", "Software"],
+  primaryNiche: "Local Rankings",
+  allowedCategories: ["Healthcare", "Education", "Business Services", "Dentists", "IAS Coaching", "SEO Agencies"],
   excludedTopics: [],
   minimumOpportunityScore: 70,
   minimumSeoQuality: 90,
@@ -93,27 +93,27 @@ export const defaultAutomationSettings: AutomationSettings = {
 };
 
 export const defaultSiteNicheProfile: SiteNicheProfile = {
-  primaryNiche: "Technology News",
-  secondaryTopics: ["Artificial Intelligence", "Cybersecurity", "Software", "Cloud Computing", "Startups"],
-  country: "US",
+  primaryNiche: "Local Rankings",
+  secondaryTopics: ["Healthcare", "Education", "Business Services", "Dentists", "IAS Coaching", "SEO Agencies"],
+  country: "IN",
   language: "en",
-  targetAudience: "technology readers, startup operators, developers, and business owners tracking practical tech updates",
-  businessGoals: ["grow useful organic traffic", "build topical authority in technology and SEO services", "support Bluespark Technologies software and SEO services"],
-  allowedTopics: ["Artificial Intelligence", "Cybersecurity", "Software", "Cloud Computing", "Developer Tools", "Digital Marketing", "SEO Technology"],
+  targetAudience: "Indian readers comparing local services, clinics, institutes, agencies, and city-level business options",
+  businessGoals: ["grow useful organic traffic for city-category ranking pages", "build authority around transparent local discovery", "help readers compare local service providers with clear criteria"],
+  allowedTopics: ["Healthcare", "Education", "Business Services", "Dentists", "IAS Coaching", "SEO Agencies", "Hospitals", "Schools", "Digital Marketing Agencies"],
   excludedTopics: [],
-  riskCategories: ["medical advice", "financial advice", "legal advice", "unsupported security claims", "unverified breaking news"],
+  riskCategories: ["medical advice", "financial advice", "legal advice", "unsupported result claims", "fake reviews", "unverified business claims"],
 };
 
 export const defaultEditorialProfile: EditorialProfile = {
-  tone: "clear, practical, evidence-first technology journalism",
-  audience: "smart non-expert readers and business owners",
+  tone: "clear, practical, evidence-first local service guidance",
+  audience: "readers comparing local providers before shortlisting or contacting them",
   readingLevel: "grade 8-10",
   paragraphStyle: "short paragraphs with useful examples",
-  terminology: ["plain English", "specific technical terms when useful", "SEO terminology when relevant"],
-  avoidTerms: ["guaranteed ranking", "undetectable AI", "breaking if not verified", "exclusive if not sourced"],
-  brandVoice: "calm technology editor, no hype",
+  terminology: ["plain English", "local ranking criteria", "service-specific terms when useful"],
+  avoidTerms: ["guaranteed results", "best without criteria", "paid ranking unless disclosed", "verified if not checked", "exclusive if not sourced"],
+  brandVoice: "calm local research editor, no hype",
   citationStyle: "link material claims to visible reputable sources",
-  formattingPreferences: ["answer-first intros", "short sections", "clear examples", "practical takeaways"],
+  formattingPreferences: ["answer-first intros", "short sections", "comparison criteria", "reader checklists"],
 };
 
 export function idempotencyKey(prefix: string, seed: string = crypto.randomUUID()) {
@@ -591,14 +591,14 @@ export async function seedPromptTemplates() {
     "Never claim content is human-written or try to bypass AI detectors.",
   ].join(" ");
   const templates = [
-    { name: "KeywordStrategist", systemPrompt: `You are a senior SEO keyword strategist for Bluespark Technologies. ${sharedPolicy}` },
-    { name: "ContentBriefExpert", systemPrompt: `You create concise briefs for technology news and evergreen technology articles across AI, cybersecurity, cloud, software, startups, developer tools, and digital marketing. Avoid repeating the same headline pattern or forcing every story into an SEO-services angle. ${sharedPolicy}` },
-    { name: "SeniorWriter", systemPrompt: `You are a senior technology editor writing original, source-aware articles for Bluespark Technologies. If a news source is supplied, explain the actual source details. If the topic is keyword-only, write an evergreen practical article and do not pretend it is news. Choose the angle from the source topic: AI, cybersecurity, cloud, software, startups, developer tools, or digital marketing. Use the primary keyword in the SEO title, intro, one H2, and conclusion only when natural. Use secondary keywords naturally. Create clear HTML with h2/h3 sections, short paragraphs, practical context, varied headlines, and no copied phrasing. Do not force every article into SEO services. ${sharedPolicy}` },
-    { name: "SeniorEditor", systemPrompt: `You edit technology articles for accuracy, clarity, usefulness, and SEO quality without adding unsupported claims. ${sharedPolicy}` },
+    { name: "KeywordStrategist", systemPrompt: `You are a senior local SEO keyword strategist for Wikibulz. ${sharedPolicy}` },
+    { name: "ContentBriefExpert", systemPrompt: `You create concise briefs for city-category ranking guides across healthcare, education, and business services. Avoid unsupported rankings, paid-placement language, and repeated headline patterns. ${sharedPolicy}` },
+    { name: "SeniorWriter", systemPrompt: `You are a senior local research editor writing original, source-aware city service guides for Wikibulz. If a source is supplied, explain the actual source details. If the topic is keyword-only, write an evergreen practical comparison guide and do not pretend it is news. Choose the angle from the local service topic: healthcare, education, coaching, agencies, clinics, schools, or business services. Use the primary keyword in the SEO title, intro, one H2, and conclusion only when natural. Use secondary keywords naturally. Create clear HTML with h2/h3 sections, short paragraphs, practical comparison criteria, varied headlines, and no copied phrasing. Do not publish fake ratings, unsupported claims, or guaranteed outcomes. ${sharedPolicy}` },
+    { name: "SeniorEditor", systemPrompt: `You edit local ranking guides for accuracy, clarity, usefulness, and SEO quality without adding unsupported claims. ${sharedPolicy}` },
     { name: "FactChecker", systemPrompt: `You check whether the article's factual claims are supported by supplied sources. Return conservative results. ${sharedPolicy}` },
     { name: "SeniorSEOAuditor", systemPrompt: `You audit title, meta description, headings, keyword use, internal links, schema fit, and reader value. ${sharedPolicy}` },
-    { name: "ImagePlanner", systemPrompt: `You plan a balanced editorial technology cover image from the article brief. Avoid fake logos, text overlays, misleading UI, clutter, stereotypes, and exaggerated futuristic visuals. ${sharedPolicy}` },
-    { name: "ImagePromptEngineer", systemPrompt: `You write image prompts for professional editorial tech covers. The result should be clear, modern, useful, and neither overdesigned nor too minimal. ${sharedPolicy}` },
+    { name: "ImagePlanner", systemPrompt: `You plan a balanced local guide cover image from the article brief. Avoid fake logos, text overlays, misleading scenes, clutter, stereotypes, and exaggerated visuals. ${sharedPolicy}` },
+    { name: "ImagePromptEngineer", systemPrompt: `You write image prompts for professional local discovery guide covers. The result should be clear, modern, useful, and neither overdesigned nor too minimal. ${sharedPolicy}` },
     ...["KeywordClusterer", "SearchIntentExpert", "SERPAnalyst", "CompetitorAnalyst", "TopicGapAnalyst", "Researcher", "SourceEvaluator", "OutlineExpert", "ClaimExtractor", "InformationGainReviewer", "InternalLinkExpert", "PlagiarismRewriteEditor", "ContentRefreshExpert", "ConsolidationExpert"].map((name) => ({ name, systemPrompt: `${name}: ${sharedPolicy}` })),
   ];
   await Promise.all(templates.map(({ name, systemPrompt }) => PromptTemplateModel.updateOne(

@@ -16,13 +16,13 @@ export function MobileCategoryMenu({ topics }: { topics: Topic[] }) {
         aria-label={open ? "Close navigation" : "Open navigation"}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className="flex size-10 items-center justify-center rounded-full text-[#273a33] transition hover:bg-[#edf5f1] hover:text-[var(--brand)]"
+        className="flex size-8 items-center justify-center rounded-full border border-[#d5e4dc] bg-white/80 text-[#273a33] shadow-sm transition hover:bg-[#edf5f1] hover:text-[var(--brand)]"
       >
-        {open ? <X size={20} /> : <Menu size={20} />}
+        {open ? <X size={17} /> : <Menu size={17} />}
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-50 mt-3 w-[min(18rem,calc(100vw-2rem))] rounded-lg border border-[var(--line)] bg-white p-2 shadow-xl">
-          <Link href="/blog" onClick={() => setOpen(false)} className="block rounded-md px-3 py-2.5 text-sm font-bold text-[#273a33] transition hover:bg-[#edf5f1]">Blog</Link>
+        <div className="absolute right-0 top-full z-50 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-lg border border-[var(--line)] bg-white p-2 shadow-xl">
+          <Link href="/blog" onClick={() => setOpen(false)} className="block rounded-md px-3 py-2.5 text-sm font-bold text-[#273a33] transition hover:bg-[#edf5f1]">Latest guides</Link>
           {topics.map((topic) => (
             <div key={topic.href}>
               <Link href={topic.href} onClick={() => setOpen(false)} className="block rounded-md px-3 py-2.5 text-sm font-bold text-[#273a33] transition hover:bg-[#edf5f1] hover:text-[var(--brand)]">{topic.label}</Link>
@@ -30,9 +30,10 @@ export function MobileCategoryMenu({ topics }: { topics: Topic[] }) {
             </div>
           ))}
           <div className="my-2 border-t border-[var(--line)]" />
+          <Link href="/how-we-rank" onClick={() => setOpen(false)} className="block rounded-md px-3 py-2.5 text-sm font-bold text-[#273a33] hover:bg-[#edf5f1]">How We Rank</Link>
           <Link href="/about" onClick={() => setOpen(false)} className="block rounded-md px-3 py-2.5 text-sm font-bold text-[#273a33] hover:bg-[#edf5f1]">About</Link>
           <Link href="/contact" onClick={() => setOpen(false)} className="block rounded-md px-3 py-2.5 text-sm font-bold text-[#273a33] hover:bg-[#edf5f1]">Contact</Link>
-          <Link href="/newsletter" onClick={() => setOpen(false)} className="mt-2 block rounded-md bg-[var(--brand)] px-3 py-2.5 text-center text-sm font-black text-white">Subscribe</Link>
+          <Link href="/blog" onClick={() => setOpen(false)} className="mt-2 block rounded-md bg-[var(--brand)] px-3 py-2.5 text-center text-sm font-black text-white">Explore Guides</Link>
         </div>
       ) : null}
     </div>

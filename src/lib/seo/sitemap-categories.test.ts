@@ -2,13 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import { seoConfig } from "@/config/seo";
 
 vi.mock("@/repositories/content.repository", () => ({
-  getPublishedPosts: vi.fn(async () => [{ category: { slug: "investing" } }]),
+  getPublishedPosts: vi.fn(async () => [{ category: { slug: "healthcare" } }]),
   getCategories: vi.fn(async () => [{
-    id: "category-investing",
-    name: "Investing",
-    slug: "investing",
-    description: "Evidence-based investing guidance for long-term decisions.",
-    canonicalUrl: "https://evil.example/topics/investing",
+    id: "category-healthcare",
+    name: "Healthcare",
+    slug: "healthcare",
+    description: "City-wise healthcare discovery guides.",
+    canonicalUrl: "https://evil.example/topics/healthcare",
     indexStatus: "index",
   }]),
 }));
@@ -21,6 +21,6 @@ describe("category sitemap canonicals", () => {
     const xml = await response.text();
 
     expect(xml).not.toContain("evil.example");
-    expect(xml).toContain(`${seoConfig.siteUrl}/category/investing`);
+    expect(xml).toContain(`${seoConfig.siteUrl}/category/healthcare`);
   });
 });

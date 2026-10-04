@@ -1,8 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { deleteCategoryAction, saveAuthorAction, saveCategoryAction, savePageAction, saveTagAction, saveUserAction, type AdminActionState } from "@/app/admin/actions";
-import type { Author, Category } from "@/types/content";
+import { deleteAuthorAction, deleteCategoryAction, saveAuthorAction, saveCategoryAction, saveCityAction, saveCountryAction, savePageAction, saveStateAction, saveTagAction, saveUserAction, type AdminActionState } from "@/app/admin/actions";
+import type { Author, Category, City, Country, StateRegion } from "@/types/content";
 
 const initialState: AdminActionState = { ok: false, message: "" };
 
@@ -20,9 +20,13 @@ export function CategoryForm({ category, categoryId, categories }: { category?: 
 }
 
 export function CategoryDeleteForm({ categoryId, name }: { categoryId: string; name: string }) {
-  return <form action={deleteCategoryAction} onSubmit={(event) => { if (!window.confirm(`Delete category “${name}”?`)) { event.preventDefault(); return; } const input = event.currentTarget.elements.namedItem("id"); if (input instanceof HTMLInputElement) input.value = categoryId; }}><input type="hidden" name="id" defaultValue={categoryId}/><button className="rounded border border-red-300 px-3 py-1 text-xs font-bold text-red-700">Delete</button></form>;
+  return <form action={deleteCategoryAction} onSubmit={(event) => { if (!window.confirm(`Delete category "${name}"?`)) { event.preventDefault(); return; } const input = event.currentTarget.elements.namedItem("id"); if (input instanceof HTMLInputElement) input.value = categoryId; }}><input type="hidden" name="id" defaultValue={categoryId}/><button className="rounded border border-red-300 px-3 py-1 text-xs font-bold text-red-700">Delete</button></form>;
 }
 
+
+export function AuthorDeleteForm({ authorId, name }: { authorId: string; name: string }) {
+  return <details className="relative"><summary className="cursor-pointer list-none rounded border border-red-300 px-3 py-1 text-xs font-bold text-red-700 hover:bg-red-50">Delete</summary><form action={deleteAuthorAction} className="mt-2 w-64 rounded-md border border-red-200 bg-white p-3 shadow-lg"><input type="hidden" name="id" value={authorId}/><p className="text-xs leading-5 text-[var(--muted)]">Delete author &quot;{name}&quot;? This is blocked if the author is linked to posts.</p><button className="mt-3 w-full rounded-md bg-red-700 px-3 py-2 text-xs font-bold text-white hover:bg-red-800">Confirm delete</button></form></details>;
+}
 export function TagForm() {
   const [state, action, pending] = useActionState(saveTagAction, initialState);
   return <form action={action} className="grid gap-4 rounded-lg border border-[var(--line)] bg-white p-5"><div className="grid gap-4 md:grid-cols-3"><input name="name" placeholder="Name" className="rounded border border-[var(--line)] px-3 py-2"/><input name="slug" placeholder="Slug" className="rounded border border-[var(--line)] px-3 py-2"/><select name="indexStatus" className="rounded border border-[var(--line)] px-3 py-2"><option value="noindex">noindex</option><option value="index">index</option></select></div><textarea name="description" placeholder="Description" className="min-h-20 rounded border border-[var(--line)] px-3 py-2"/><Message state={state}/><Submit pending={pending} label="Save Tag"/></form>;
@@ -41,4 +45,28 @@ export function PageForm() {
 export function UserForm() {
   const [state, action, pending] = useActionState(saveUserAction, initialState);
   return <form action={action} className="grid gap-4 rounded-lg border border-[var(--line)] bg-white p-5"><div className="grid gap-4 md:grid-cols-4"><input name="name" placeholder="Name" className="rounded border border-[var(--line)] px-3 py-2"/><input name="email" type="email" placeholder="Email" className="rounded border border-[var(--line)] px-3 py-2"/><input name="password" type="password" placeholder="New password" className="rounded border border-[var(--line)] px-3 py-2"/><select name="role" className="rounded border border-[var(--line)] px-3 py-2"><option value="author">author</option><option value="seo">seo</option><option value="editor">editor</option><option value="admin">admin</option></select></div><label className="text-sm font-bold"><input type="checkbox" name="active" defaultChecked/> Active</label><Message state={state}/><Submit pending={pending} label="Save User"/></form>;
+}
+
+function LocationFields({ item }: { item?: Country | StateRegion | City }) {
+  return <>
+    <div className="grid gap-4 md:grid-cols-2"><input name="name" defaultValue={item?.name} placeholder="Name" className="rounded border border-[var(--line)] px-3 py-2"/><input name="slug" defaultValue={item?.slug} placeholder="Slug" className="rounded border border-[var(--line)] px-3 py-2"/></div>
+    <textarea name="description" defaultValue={item?.description} placeholder="Description" className="min-h-24 rounded border border-[var(--line)] px-3 py-2"/>
+    <div className="grid gap-4 md:grid-cols-3"><input name="seoTitle" defaultValue={item?.seoTitle} placeholder="SEO title" className="rounded border border-[var(--line)] px-3 py-2"/><input name="metaDescription" defaultValue={item?.metaDescription} placeholder="Meta description" className="rounded border border-[var(--line)] px-3 py-2"/><input name="canonicalUrl" defaultValue={item?.canonicalUrl} placeholder="Canonical URL" className="rounded border border-[var(--line)] px-3 py-2"/></div>
+    <div className="grid gap-4 md:grid-cols-2"><select name="indexStatus" defaultValue={item?.indexStatus ?? "index"} className="rounded border border-[var(--line)] px-3 py-2"><option value="index">index</option><option value="noindex">noindex</option></select><select name="status" defaultValue={item?.status ?? "active"} className="rounded border border-[var(--line)] px-3 py-2"><option value="active">active</option><option value="inactive">inactive</option></select></div>
+  </>;
+}
+
+export function CountryForm({ country }: { country?: Country }) {
+  const [state, action, pending] = useActionState(saveCountryAction, initialState);
+  return <form action={action} className="grid gap-4 rounded-lg border border-[var(--line)] bg-white p-5"><input type="hidden" name="countryId" value={country?.id ?? ""}/><h2 className="text-xl font-black">{country ? "Edit Country" : "New Country"}</h2><LocationFields item={country}/><Message state={state}/><Submit pending={pending} label={country ? "Update Country" : "Save Country"}/></form>;
+}
+
+export function StateForm({ stateRegion, countries }: { stateRegion?: StateRegion; countries: Country[] }) {
+  const [state, action, pending] = useActionState(saveStateAction, initialState);
+  return <form action={action} className="grid gap-4 rounded-lg border border-[var(--line)] bg-white p-5"><input type="hidden" name="stateId" value={stateRegion?.id ?? ""}/><h2 className="text-xl font-black">{stateRegion ? "Edit State" : "New State"}</h2><select name="country" required defaultValue={stateRegion?.country.id ?? countries[0]?.id ?? ""} className="rounded border border-[var(--line)] px-3 py-2"><option value="" disabled>{countries.length ? "Select country" : "Create a country first"}</option>{countries.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}</select><LocationFields item={stateRegion}/><Message state={state}/><Submit pending={pending} label={stateRegion ? "Update State" : "Save State"}/></form>;
+}
+
+export function CityForm({ city, countries, states }: { city?: City; countries: Country[]; states: StateRegion[] }) {
+  const [state, action, pending] = useActionState(saveCityAction, initialState);
+  return <form action={action} className="grid gap-4 rounded-lg border border-[var(--line)] bg-white p-5"><input type="hidden" name="cityId" value={city?.id ?? ""}/><h2 className="text-xl font-black">{city ? "Edit City" : "New City"}</h2><div className="grid gap-4 md:grid-cols-2"><select name="country" required defaultValue={city?.country.id ?? countries[0]?.id ?? ""} className="rounded border border-[var(--line)] px-3 py-2"><option value="" disabled>{countries.length ? "Select country" : "Create a country first"}</option>{countries.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}</select><select name="state" required defaultValue={city?.state.id ?? states[0]?.id ?? ""} className="rounded border border-[var(--line)] px-3 py-2"><option value="" disabled>{states.length ? "Select state" : "Create a state first"}</option>{states.map((stateRegion) => <option key={stateRegion.id} value={stateRegion.id}>{stateRegion.name}</option>)}</select></div><LocationFields item={city}/><Message state={state}/><Submit pending={pending} label={city ? "Update City" : "Save City"}/></form>;
 }

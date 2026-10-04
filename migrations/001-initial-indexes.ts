@@ -1,5 +1,5 @@
 import { connectMongo } from "../src/lib/db/mongoose";
-import { AuthorModel, CategoryModel, InternalLinkModel, MediaAssetModel, NewsletterSubscriberModel, NotFoundModel, PageModel, PostModel, RedirectModel, RevalidationLogModel, SeoRevisionModel, TagModel, UserModel } from "../src/models/schemas";
+import { AuthorModel, CategoryModel, CityModel, CountryModel, InternalLinkModel, MediaAssetModel, NewsletterSubscriberModel, NotFoundModel, PageModel, PostModel, RedirectModel, RevalidationLogModel, SeoRevisionModel, StateModel, TagModel, UserModel } from "../src/models/schemas";
 import { AIUsageRecordModel, AutomationArtifactModel, AutomationNotificationModel, AutomationRunModel, AutomationSettingsModel, AutoblogKeywordModel, EditorialProfileModel, GscPerformanceModel, PlagiarismScanModel, PromptTemplateModel, ProviderHealthModel, ProviderSettingsModel, PublishingQueueModel, RefreshCandidateModel, ResearchSourceModel, RoiRecordModel, SeoExperimentModel, SerpSnapshotModel, SiteNicheProfileModel, TopicClusterModel } from "../src/modules/autoblog/models/schemas";
 
 async function main() {
@@ -9,6 +9,9 @@ async function main() {
     AuthorModel.syncIndexes(),
     CategoryModel.syncIndexes(),
     TagModel.syncIndexes(),
+    CountryModel.syncIndexes(),
+    StateModel.syncIndexes(),
+    CityModel.syncIndexes(),
     PostModel.syncIndexes(),
     PageModel.syncIndexes(),
     RedirectModel.syncIndexes(),

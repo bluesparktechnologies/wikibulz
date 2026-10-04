@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isValidObjectId } from "mongoose";
 import { z } from "zod";
+import { findRootSlugConflict } from "@/lib/admin/root-slug-conflicts";
 import { requireRole, requireUser } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/session";
 import { connectMongo } from "@/lib/db/mongoose";
 import { buildPostUrl, normalizeSlug } from "@/lib/seo/url";
-import { canonicalUrlSchema, categoryFormSchema } from "@/lib/validation/content";
-import { AuthorModel, CategoryModel, PageModel, PostModel, RedirectModel, SeoRevisionModel, TagModel, UserModel } from "@/models/schemas";
+import { canonicalUrlSchema, categoryFormSchema, locationFormSchema } from "@/lib/validation/content";
+import { AuthorModel, CategoryModel, CityModel, CountryModel, PageModel, PostModel, RedirectModel, SeoRevisionModel, StateModel, TagModel, UserModel } from "@/models/schemas";
 import type { UserRole } from "@/types/content";
 
 export type AdminEntity = { id: string; name: string; slug: string };
@@ -87,8 +88,8 @@ async function preserveCategoryUrlChanges(categoryId: string, beforeDocs: Array<
     const oldPath = categoryPathFromRecords(postCategoryId, before);
     const newPath = categoryPathFromRecords(postCategoryId, after);
     if (!oldPath.length || !newPath.length || oldPath.join("/") === newPath.join("/")) return;
-    const oldUrl = buildPostUrl({ slug: String(post.slug), publicId: typeof post.publicId === "string" ? post.publicId : undefined, category: { slug: oldPath[oldPath.length - 1], categoryPath: oldPath } });
-    const newUrl = buildPostUrl({ slug: String(post.slug), publicId: typeof post.publicId === "string" ? post.publicId : undefined, category: { slug: newPath[newPath.length - 1], categoryPath: newPath } });
+    const oldUrl = buildPostUrl({ slug: String(post.slug), publicId: typeof post.publicId === "string" ? post.publicId : undefined, category: { slug: oldPath[oldPath.length - 1], categoryPath: oldPath } }, "category-post");
+    const newUrl = buildPostUrl({ slug: String(post.slug), publicId: typeof post.publicId === "string" ? post.publicId : undefined, category: { slug: newPath[newPath.length - 1], categoryPath: newPath } }, "category-post");
     await RedirectModel.updateOne(
       { sourcePath: oldUrl },
       { sourcePath: oldUrl, destinationPath: newUrl, statusCode: 301, active: true },
@@ -235,6 +236,122 @@ export async function saveAuthorAction(_state: AdminActionState, formData: FormD
   }
 }
 
+export async function saveCountryAction(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireRole("editor");
+  try {
+    await ensureDb();
+    const countryId = val(formData, "countryId");
+    const parsed = locationFormSchema.parse({
+      name: val(formData, "name"),
+      slug: val(formData, "slug") || val(formData, "name"),
+      description: val(formData, "description"),
+      seoTitle: val(formData, "seoTitle"),
+      metaDescription: val(formData, "metaDescription"),
+      canonicalUrl: val(formData, "canonicalUrl"),
+      indexStatus: val(formData, "indexStatus") || "index",
+      status: val(formData, "status") || "active",
+    });
+    if (countryId && !isValidObjectId(countryId)) return initialError("Country could not be found.");
+    const rootConflict = await findRootSlugConflict(parsed.slug, "country", countryId || undefined);
+    if (rootConflict) return initialError(rootConflict);
+    const conflict = await CountryModel.findOne({ slug: parsed.slug, ...(countryId ? { _id: { $ne: countryId } } : {}) }).select("_id").lean();
+    if (conflict) return initialError("A country with this slug already exists.");
+    const country = countryId
+      ? await CountryModel.findByIdAndUpdate(countryId, parsed, { new: true, runValidators: true }).lean()
+      : await CountryModel.findOneAndUpdate({ slug: parsed.slug }, parsed, { upsert: true, new: true, runValidators: true }).lean();
+    if (!country) return initialError("Country could not be saved.");
+    revalidatePath("/admin/locations");
+    revalidatePath(`/${parsed.slug}`);
+    revalidatePath("/sitemap-locations.xml");
+    revalidatePath("/sitemap.xml");
+    return { ok: true, message: "Country saved.", entity: { id: String(country._id), name: country.name, slug: country.slug } };
+  } catch (error) {
+    if (error instanceof z.ZodError) return initialError(error.issues[0]?.message ?? "Check the country fields.");
+    return initialError(error instanceof Error ? error.message : "Country save failed.");
+  }
+}
+
+export async function saveStateAction(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireRole("editor");
+  try {
+    await ensureDb();
+    const stateId = val(formData, "stateId");
+    const parsed = locationFormSchema.parse({
+      name: val(formData, "name"),
+      slug: val(formData, "slug") || val(formData, "name"),
+      description: val(formData, "description"),
+      country: val(formData, "country"),
+      seoTitle: val(formData, "seoTitle"),
+      metaDescription: val(formData, "metaDescription"),
+      canonicalUrl: val(formData, "canonicalUrl"),
+      indexStatus: val(formData, "indexStatus") || "index",
+      status: val(formData, "status") || "active",
+    });
+    if (stateId && !isValidObjectId(stateId)) return initialError("State could not be found.");
+    if (!parsed.country || !isValidObjectId(parsed.country)) return initialError("Select a valid country.");
+    const rootConflict = await findRootSlugConflict(parsed.slug, "state", stateId || undefined);
+    if (rootConflict) return initialError(rootConflict);
+    const conflict = await StateModel.findOne({ slug: parsed.slug, ...(stateId ? { _id: { $ne: stateId } } : {}) }).select("_id").lean();
+    if (conflict) return initialError("A state with this slug already exists.");
+    const payload = { ...parsed, country: parsed.country };
+    const state = stateId
+      ? await StateModel.findByIdAndUpdate(stateId, payload, { new: true, runValidators: true }).lean()
+      : await StateModel.findOneAndUpdate({ slug: parsed.slug }, payload, { upsert: true, new: true, runValidators: true }).lean();
+    if (!state) return initialError("State could not be saved.");
+    revalidatePath("/admin/locations");
+    revalidatePath(`/${parsed.slug}`);
+    revalidatePath("/sitemap-locations.xml");
+    revalidatePath("/sitemap.xml");
+    return { ok: true, message: "State saved.", entity: { id: String(state._id), name: state.name, slug: state.slug } };
+  } catch (error) {
+    if (error instanceof z.ZodError) return initialError(error.issues[0]?.message ?? "Check the state fields.");
+    return initialError(error instanceof Error ? error.message : "State save failed.");
+  }
+}
+
+export async function saveCityAction(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireRole("editor");
+  try {
+    await ensureDb();
+    const cityId = val(formData, "cityId");
+    const parsed = locationFormSchema.parse({
+      name: val(formData, "name"),
+      slug: val(formData, "slug") || val(formData, "name"),
+      description: val(formData, "description"),
+      country: val(formData, "country"),
+      state: val(formData, "state"),
+      seoTitle: val(formData, "seoTitle"),
+      metaDescription: val(formData, "metaDescription"),
+      canonicalUrl: val(formData, "canonicalUrl"),
+      indexStatus: val(formData, "indexStatus") || "index",
+      status: val(formData, "status") || "active",
+    });
+    if (cityId && !isValidObjectId(cityId)) return initialError("City could not be found.");
+    if (!parsed.country || !isValidObjectId(parsed.country)) return initialError("Select a valid country.");
+    if (!parsed.state || !isValidObjectId(parsed.state)) return initialError("Select a valid state.");
+    const rootConflict = await findRootSlugConflict(parsed.slug, "city", cityId || undefined);
+    if (rootConflict) return initialError(rootConflict);
+    const state = await StateModel.findById(parsed.state).select("country").lean();
+    if (!state) return initialError("The selected state could not be found.");
+    if (String(state.country) !== parsed.country) return initialError("City state must belong to the selected country.");
+    const conflict = await CityModel.findOne({ slug: parsed.slug, ...(cityId ? { _id: { $ne: cityId } } : {}) }).select("_id").lean();
+    if (conflict) return initialError("A city with this slug already exists.");
+    const payload = { ...parsed, country: parsed.country, state: parsed.state };
+    const city = cityId
+      ? await CityModel.findByIdAndUpdate(cityId, payload, { new: true, runValidators: true }).lean()
+      : await CityModel.findOneAndUpdate({ slug: parsed.slug }, payload, { upsert: true, new: true, runValidators: true }).lean();
+    if (!city) return initialError("City could not be saved.");
+    revalidatePath("/admin/locations");
+    revalidatePath(`/${parsed.slug}`);
+    revalidatePath("/sitemap-locations.xml");
+    revalidatePath("/sitemap.xml");
+    return { ok: true, message: "City saved.", entity: { id: String(city._id), name: city.name, slug: city.slug } };
+  } catch (error) {
+    if (error instanceof z.ZodError) return initialError(error.issues[0]?.message ?? "Check the city fields.");
+    return initialError(error instanceof Error ? error.message : "City save failed.");
+  }
+}
+
 export async function deleteAuthorAction(formData: FormData): Promise<void> {
   await requireRole("editor");
   const id = val(formData, "id");
@@ -257,6 +374,8 @@ export async function savePageAction(_state: AdminActionState, formData: FormDat
     await ensureDb();
     const title = val(formData, "title");
     const slug = normalizeSlug(val(formData, "slug") || title);
+    const rootConflict = await findRootSlugConflict(slug, "page");
+    if (rootConflict) return initialError(rootConflict);
     await PageModel.updateOne(
       { slug },
       {

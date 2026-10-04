@@ -6,7 +6,7 @@ import { posts } from "@/lib/content/sample-data";
 
 describe("autoblog strategy", () => {
   it("normalizes keywords safely", () => {
-    expect(normalizeKeyword(" Best   Index Funds!! ")).toBe("best index funds");
+    expect(normalizeKeyword(" Best   Dentists in Lucknow!! ")).toBe("best dentists in lucknow");
   });
 
   it("groups close beginner keyword variants into a shared fingerprint", () => {
@@ -24,7 +24,7 @@ describe("autoblog strategy", () => {
   });
 
   it("prevents duplicate article creation when a keyword is already covered", () => {
-    const result = analyzeCannibalization("best index funds", posts);
+    const result = analyzeCannibalization("best dentists in Lucknow", posts);
     expect(result.decision).toBe("UPDATE_EXISTING");
   });
 });

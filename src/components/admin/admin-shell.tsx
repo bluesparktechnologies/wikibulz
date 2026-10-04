@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Activity, Bot, FileText, Image, Link2, Mail, Menu, Newspaper, ShieldCheck, Tags, Users, X } from "lucide-react";
+import { Activity, Bot, FileText, Globe2, Image, Link2, Mail, Menu, Newspaper, ShieldCheck, Tags, Users, X } from "lucide-react";
 
 const nav = [
   { href: "/admin", label: "Dashboard", icon: Activity },
   { href: "/admin/posts", label: "Posts", icon: FileText },
   { href: "/admin/automation", label: "Automation", icon: Bot },
   { href: "/admin/categories", label: "Categories", icon: Tags },
+  { href: "/admin/locations", label: "Locations", icon: Globe2 },
   { href: "/admin/authors", label: "Authors", icon: Users },
   { href: "/admin/pages", label: "Pages", icon: FileText },
   { href: "/admin/tags", label: "Tags", icon: Tags },

@@ -1,8 +1,8 @@
-import { authors, categories, staticPages, tags } from "@/lib/content/sample-data";
+import { authors, categories, cities, countries, states, staticPages, tags } from "@/lib/content/sample-data";
 import { connectMongo } from "@/lib/db/mongoose";
-import { AuthorModel, CategoryModel, MediaAssetModel, PageModel, SeoRevisionModel, TagModel, UserModel } from "@/models/schemas";
-import { mapAuthor, mapCategory, mapMedia, mapStaticPage, mapTag } from "@/repositories/mappers";
-import type { Author, Category, StaticPage, Tag, UserRole } from "@/types/content";
+import { AuthorModel, CategoryModel, CityModel, CountryModel, MediaAssetModel, PageModel, SeoRevisionModel, StateModel, TagModel, UserModel } from "@/models/schemas";
+import { mapAuthor, mapCategory, mapCity, mapCountry, mapMedia, mapState, mapStaticPage, mapTag } from "@/repositories/mappers";
+import type { Author, Category, City, Country, StateRegion, StaticPage, Tag, UserRole } from "@/types/content";
 
 type UserDoc = { _id: unknown; email?: unknown; name?: unknown; role?: unknown; active?: unknown; createdAt?: unknown; updatedAt?: unknown };
 type RevisionDoc = { _id: unknown; entityType?: unknown; entityId?: unknown; field?: unknown; previousValue?: unknown; nextValue?: unknown; changedBy?: unknown; createdAt?: unknown };
@@ -34,6 +34,27 @@ export async function getAdminAuthors(): Promise<Author[]> {
   if (!db) return authors;
   const docs = await AuthorModel.find({}).sort({ name: 1 }).lean();
   return JSON.parse(JSON.stringify(docs)).map(mapAuthor) as Author[];
+}
+
+export async function getAdminCountries(): Promise<Country[]> {
+  const db = await connectMongo();
+  if (!db) return countries;
+  const docs = await CountryModel.find({}).sort({ name: 1 }).lean();
+  return JSON.parse(JSON.stringify(docs)).map(mapCountry) as Country[];
+}
+
+export async function getAdminStates(): Promise<StateRegion[]> {
+  const db = await connectMongo();
+  if (!db) return states;
+  const docs = await StateModel.find({}).populate("country").sort({ name: 1 }).lean();
+  return JSON.parse(JSON.stringify(docs)).map(mapState) as StateRegion[];
+}
+
+export async function getAdminCities(): Promise<City[]> {
+  const db = await connectMongo();
+  if (!db) return cities;
+  const docs = await CityModel.find({}).populate("country").populate({ path: "state", populate: { path: "country" } }).sort({ name: 1 }).lean();
+  return JSON.parse(JSON.stringify(docs)).map(mapCity) as City[];
 }
 
 export async function getAdminPages(): Promise<StaticPage[]> {

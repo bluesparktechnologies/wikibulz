@@ -1,14 +1,14 @@
 import { randomBytes } from "node:crypto";
 import slugify from "slugify";
 import { seoConfig } from "@/config/seo";
-import type { Category, Post } from "@/types/content";
+import type { Category, LocationEntity, Post } from "@/types/content";
 
 export { normalizeCategorySlug } from "@/lib/seo/category-slug";
 
 export type ArticleUrlStrategy = "category-post" | "post-only";
 export function normalizeSlug(input: string) { return slugify(input.replace(/[^\w\s-]/g, ""), { lower: true, strict: true, trim: true }); }
 const slugStopWords = new Set(["a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "for", "from", "has", "have", "how", "in", "into", "is", "it", "its", "new", "now", "of", "on", "or", "our", "that", "the", "their", "this", "to", "we", "what", "when", "where", "which", "who", "why", "will", "with", "you", "your"]);
-export function compactPostSlug(input: string, fallback = "technology-update", maxWords = 7, maxLength = 72) {
+export function compactPostSlug(input: string, fallback = "local-guide", maxWords = 7, maxLength = 72) {
   const normalized = normalizeSlug(input || fallback);
   const meaningful = normalized.split("-").filter((word) => word && !slugStopWords.has(word));
   const selected = (meaningful.length >= 3 ? meaningful : normalized.split("-").filter(Boolean)).slice(0, maxWords);
@@ -17,7 +17,7 @@ export function compactPostSlug(input: string, fallback = "technology-update", m
     const clipped = slug.slice(0, maxLength);
     slug = clipped.slice(0, Math.max(clipped.lastIndexOf("-"), 24)).replace(/-+$/g, "");
   }
-  return slug || "technology-update";
+  return slug || "local-guide";
 }
 export function normalizePathname(path: string) { const normalized = path.toLowerCase().replace(/\/{2,}/g, "/").replace(/\/$/, ""); return normalized === "" ? "/" : normalized; }
 export function normalizePath(path: string) { return normalizePathname(path.split("?")[0]); }
@@ -33,7 +33,7 @@ export function categoryPath(category: Pick<Category, "slug" | "categoryPath">) 
   return category.categoryPath?.length ? category.categoryPath : [category.slug];
 }
 
-export function buildPostUrl(post: PostUrlInput, strategy: ArticleUrlStrategy = "category-post") {
+export function buildPostUrl(post: PostUrlInput, strategy: ArticleUrlStrategy = "post-only") {
   const baseSlug = post?.slug || "";
   // publicId is a legacy compatibility field. It is retained for existing
   // posts so their already-published URLs keep working, but new posts do not
@@ -47,7 +47,8 @@ export function matchesPostSlug(post: Pick<Post, "slug" | "publicId">, candidate
   return post.slug === candidate || Boolean(post.publicId && `${post.slug}-${post.publicId}` === candidate);
 }
 export function createPublicId() { return randomBytes(5).toString("base64url").slice(0, 7); }
-export function buildCategoryUrl(category: Pick<Category, "slug">) { return "/category/" + category.slug; }
+export function buildCategoryUrl(category: Pick<Category, "slug" | "categoryPath">) { return "/category/" + categoryPath(category).join("/"); }
+export function buildLocationUrl(location: Pick<LocationEntity, "slug">) { return "/" + location.slug; }
 export function isSameOriginCanonical(value: string) {
   try {
     const candidate = new URL(value, seoConfig.siteUrl);
@@ -87,4 +88,7 @@ export function resolvePostCanonical(post: Pick<Post, "slug" | "category" | "can
 export function resolveCategoryCanonical(category: Pick<Category, "slug" | "canonicalUrl">, page = 1) {
   const fallback = page > 1 ? `${buildCategoryUrl(category)}?page=${page}` : buildCategoryUrl(category);
   return page > 1 ? buildCanonicalUrl(fallback) : resolveCanonicalUrl(category.canonicalUrl, fallback);
+}
+export function resolveLocationCanonical(location: Pick<LocationEntity, "slug" | "canonicalUrl">) {
+  return resolveCanonicalUrl(location.canonicalUrl, buildLocationUrl(location));
 }

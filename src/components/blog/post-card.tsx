@@ -5,20 +5,20 @@ import type { Post } from "@/types/content";
 
 export function PostCard({ post, priority = false }: { post: Post; priority?: boolean }) {
   return (
-    <article className="group grid gap-4 border-b border-[var(--line)] pb-6">
+    <article className="group grid gap-4 rounded-lg border border-[var(--line)] bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <Link href={buildPostUrl(post)} className="block overflow-hidden rounded-md bg-[#eaf0ec]">
         <Image
           src={post.featuredImage.url}
           alt={post.featuredImage.alt}
           width={post.featuredImage.width}
           height={post.featuredImage.height}
-          priority={priority}
-          unoptimized={post.featuredImage.url.startsWith("http")}
+          preload={priority}
+          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
           className="aspect-[16/10] w-full object-cover transition duration-300 group-hover:scale-[1.02]"
         />
       </Link>
-      <div>
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--accent)]">{post.category.name}</p>
+      <div className="px-1 pb-2">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--accent)]">{post.city ? post.city.name + " / " : ""}{post.category.name}</p>
         <h2 className="mt-2 text-xl font-black leading-snug text-[var(--foreground)] md:text-2xl">
           <Link href={buildPostUrl(post)} className="hover:text-[var(--brand)]">{post.title}</Link>
         </h2>

@@ -37,6 +37,9 @@ export const postFormSchema = z.object({
   featuredImageUrl: z.preprocess(emptyToUndefined, imageUrlSchema.optional()),
   featuredImageAlt: z.preprocess(emptyToUndefined, z.string().max(180).optional()),
   author: z.string().min(1, "Select an author."),
+  country: z.preprocess(emptyToUndefined, z.string().optional()),
+  state: z.preprocess(emptyToUndefined, z.string().optional()),
+  city: z.preprocess(emptyToUndefined, z.string().optional()),
   category: z.string().min(1, "Select a category."),
   status: z.enum(["draft", "review", "scheduled", "published", "archived", "trash"]),
   publishedAt: z.preprocess(emptyToUndefined, z.string().optional()),
@@ -84,6 +87,19 @@ export const categoryFormSchema = z.object({
   metaDescription: z.preprocess(emptyToUndefined, z.string().max(170).optional()),
   canonicalUrl: canonicalUrlSchema,
   indexStatus: z.enum(["index", "noindex"]).default("index"),
+});
+
+export const locationFormSchema = z.object({
+  name: z.string().min(2).max(120),
+  slug: z.string().min(2).max(120).transform(normalizeCategorySlug),
+  description: z.string().min(20).max(1000),
+  seoTitle: z.preprocess(emptyToUndefined, z.string().max(65).optional()),
+  metaDescription: z.preprocess(emptyToUndefined, z.string().max(170).optional()),
+  canonicalUrl: canonicalUrlSchema,
+  indexStatus: z.enum(["index", "noindex"]).default("index"),
+  status: z.enum(["active", "inactive"]).default("active"),
+  country: z.preprocess(emptyToUndefined, z.string().optional()),
+  state: z.preprocess(emptyToUndefined, z.string().optional()),
 });
 
 export const redirectFormSchema = z.object({

@@ -12,16 +12,16 @@ const category = (id: string, slug: string, parentCategory?: string): Category =
 });
 
 describe("category tree", () => {
-  const categories = [category("parent", "infowar"), category("child", "obzor-smi", "parent"), category("other", "technology-news")];
+  const categories = [category("parent", "healthcare"), category("child", "dentists", "parent"), category("other", "education")];
 
   it("builds parent hover children in a stable tree", () => {
     const tree = buildCategoryTree(categories);
-    expect(tree.map((node) => node.category.slug)).toEqual(["infowar", "technology-news"]);
-    expect(tree[0].children.map((node) => node.category.slug)).toEqual(["obzor-smi"]);
+    expect(tree.map((node) => node.category.slug)).toEqual(["education", "healthcare"]);
+    expect(tree.find((node) => node.category.slug === "healthcare")?.children.map((node) => node.category.slug)).toEqual(["dentists"]);
   });
 
   it("includes descendants in a parent category listing", () => {
-    expect(getCategoryFamilySlugs(categories, "infowar")).toEqual(new Set(["infowar", "obzor-smi"]));
-    expect(getCategoryFamilySlugs(categories, "obzor-smi")).toEqual(new Set(["obzor-smi"]));
+    expect(getCategoryFamilySlugs(categories, "healthcare")).toEqual(new Set(["healthcare", "dentists"]));
+    expect(getCategoryFamilySlugs(categories, "dentists")).toEqual(new Set(["dentists"]));
   });
 });

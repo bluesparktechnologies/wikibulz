@@ -6,7 +6,7 @@ export const seoConfig = {
   siteName,
   siteUrl: validatedSiteUrl,
   titleTemplate: `%s | ${siteName}`,
-  defaultDescription: "Clear explainers and practical guides for curious readers, covering money, technology, everyday skills, and how things work.",
+  defaultDescription: "Wikibulz publishes researched local rankings and city guides for healthcare, education, business services, home services, food, real estate, and more.",
   defaultOgImage: "/logo-wikibulz.png",
   timezone: "UTC",
   defaultTagIndexing: process.env.DEFAULT_TAG_INDEXING === "index" ? "index" : "noindex",

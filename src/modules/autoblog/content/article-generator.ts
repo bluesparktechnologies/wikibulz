@@ -10,8 +10,8 @@ import type { NewsTopic, SerpSnapshot } from "@/modules/autoblog/types/providers
 import { AuthorModel, CategoryModel, MediaAssetModel, PostModel, TagModel } from "@/models/schemas";
 
 const fallbackImage = {
-  url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1600&q=80",
-  alt: "Technology workspace with code and digital product planning",
+  url: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1600&q=80",
+  alt: "Local research desk comparing service provider information",
   width: 1600,
   height: 900,
   caption: undefined as string | undefined,
@@ -109,7 +109,7 @@ export async function generateArticleDraft(input: ArticleGenerationInput) {
       taskType: "SeniorWriter",
       variables: {
         input: {
-          task: "Write a source-aware SEO technology article draft as JSON.",
+          task: "Write a source-aware local ranking guide draft as JSON.",
           topic: input.topic,
           primaryKeyword: input.primaryKeyword,
           secondaryKeywords: input.secondaryKeywords,
@@ -123,10 +123,11 @@ export async function generateArticleDraft(input: ArticleGenerationInput) {
             "Return HTML content using p, h2, h3, ul, li, strong, and a tags only.",
             "Use the primary keyword naturally in title, intro, one h2, meta description, and conclusion if it fits.",
             "Use secondary keywords naturally. Do not keyword stuff.",
-            "Do not force every article into an SEO-services angle. Choose the angle from the source topic: AI, cybersecurity, cloud, software, startups, developer tools, or digital marketing.",
-            "Write a specific headline based on the news/topic. Avoid repeated templates such as 'What it means for technology readers' unless it is clearly the best fit.",
+            "Choose the angle from the source topic: healthcare, education, coaching, agencies, clinics, schools, or business services.",
+            "Write a specific headline based on the city and service topic. Avoid repeated templates such as 'What it means for readers' unless it is clearly the best fit.",
             "Cite supplied sources with links where factual claims are made.",
             "Do not invent facts, quotes, dates, statistics, or source links.",
+            "Do not invent provider rankings, ratings, addresses, fees, or result claims.",
             "Set factCheckPassed false when source details still need editor review.",
           ],
         },
@@ -148,7 +149,7 @@ function escapeHtml(value: string) {
 
 function sentenceCase(value: string) {
   const cleaned = value.replace(/\s+/g, " ").trim();
-  if (!cleaned) return "Technology update";
+  if (!cleaned) return "Local guide";
   return `${cleaned.charAt(0).toUpperCase()}${cleaned.slice(1)}`;
 }
 
@@ -161,7 +162,7 @@ function trimText(value: string, max: number) {
 }
 
 export function createFallbackReviewDraft(input: ArticleGenerationInput, reason: string): ArticleDraft {
-  const topicTitle = sentenceCase(input.topic.title || input.primaryKeyword || "Technology update");
+  const topicTitle = sentenceCase(input.topic.title || input.primaryKeyword || "Local guide");
   const primaryKeyword = input.primaryKeyword || topicTitle;
   const sourceLabel = input.topic.publisher || "the available source";
   const sourceUrl = publicSiteUrl(input.topic.url);
@@ -176,23 +177,23 @@ export function createFallbackReviewDraft(input: ArticleGenerationInput, reason:
     ...input.siteProfile.allowedTopics,
   ].filter(Boolean))).slice(0, 8);
   const title = trimText(topicTitle.length > 95 ? topicTitle : `${topicTitle}: A practical guide`, 110);
-  const excerpt = trimText(`A practical overview of ${topicTitle}, written for ${input.siteProfile.targetAudience || "technology readers and business teams"}.`, 200);
-  const metaDescription = trimText(`${topicTitle} explained with practical context for software, SEO, and business teams.`, 155);
+  const excerpt = trimText(`A practical local comparison guide to ${topicTitle}, written for ${input.siteProfile.targetAudience || "readers comparing local services"}.`, 200);
+  const metaDescription = trimText(`${topicTitle} explained with practical comparison criteria, trust signals, and reader checks.`, 155);
   void reason;
   const contentHtml = [
-    `<p><strong>${safeTopic}</strong> is relevant for readers tracking ${escapeHtml(input.siteProfile.primaryNiche)} because it connects daily technology decisions with how teams choose software, protect systems, and plan digital growth.</p>`,
-    `<p>The practical question is simple: what should a reader understand before they change a workflow, test a new tool, or explain the topic to a client or team? A useful answer starts with context, then moves into decisions.</p>`,
-    `<h2 id="what-this-topic-means">What this topic means</h2>`,
-    `<p>The core topic is <strong>${safeKeyword}</strong>. For a practical technology audience, the useful angle is not hype. Readers need to understand what changed, who may be affected, and which decisions deserve attention before they invest time, budget, or engineering effort.</p>`,
-    `<p>When the topic is tied to a current source, the most important details are the original announcement, the timing, and who is affected. When the topic is evergreen, the focus belongs on practical guidance rather than claims about a new event.</p>`,
-    `<h2 id="why-teams-should-care">Why teams should care</h2>`,
-    `<p>Software teams, SEO teams, and business owners often feel technology shifts first through workflow changes: new tools, new security expectations, new customer search behavior, or new operational costs. A useful article should translate the topic into plain-language decisions that readers can act on.</p>`,
-    `<ul><li>Check whether the topic affects customer-facing websites, software workflows, or data handling.</li><li>Look for official documentation, product updates, or reliable reporting before making strong claims.</li><li>Explain practical next steps without promising guaranteed rankings, security outcomes, or business results.</li></ul>`,
+    `<p><strong>${safeTopic}</strong> is relevant for readers tracking ${escapeHtml(input.siteProfile.primaryNiche)} because local service decisions need clear criteria, visible information, and careful checks before shortlisting a provider.</p>`,
+    `<p>The practical question is simple: what should a reader compare before contacting a clinic, institute, agency, or local business? A useful answer starts with transparent criteria, then moves into reader checks.</p>`,
+    `<h2 id="what-to-compare">What to compare</h2>`,
+    `<p>The core topic is <strong>${safeKeyword}</strong>. Readers need to understand service scope, accessibility, public credentials, communication quality, pricing clarity where available, and whether claims are supported by visible information.</p>`,
+    `<p>When the topic is tied to a current source, the most important details are the original source, the timing, and who is affected. When the topic is evergreen, the focus belongs on practical local guidance rather than unsupported claims.</p>`,
+    `<h2 id="why-readers-should-care">Why readers should care</h2>`,
+    `<p>Local choices often involve time, money, and trust. A useful guide should translate provider information into plain-language checks that readers can use before booking a consultation, trial class, audit call, or visit.</p>`,
+    `<ul><li>Check whether the provider clearly explains services, process, and availability.</li><li>Look for public credentials, contact details, service pages, and recent information before making strong claims.</li><li>Explain practical next steps without promising guaranteed medical, education, ranking, or business outcomes.</li></ul>`,
     `<h2 id="what-to-check-next">What to check next</h2>`,
     `<p>The attached source context is <a href="${safeSourceUrl}">${safeSourceLabel}</a>. Reliable coverage stays focused on visible, verifiable details from the topic and avoids claims that are not supported by a clear source.</p>`,
     `<p>After review, the strongest version of this article should answer the reader quickly, keep the title natural, use related terms only where they fit, and avoid repeating the same phrase across headings and paragraphs.</p>`,
     `<h2 id="bottom-line">Bottom line</h2>`,
-    `<p>${safeTopic} is worth covering when it helps readers make clearer software, SEO, security, or digital strategy decisions. The best version keeps the explanation specific, practical, and grounded in verifiable context.</p>`,
+    `<p>${safeTopic} is worth covering when it helps readers make clearer local service decisions. The best version keeps the explanation specific, practical, and grounded in verifiable context.</p>`,
   ].join("");
 
   return {
@@ -201,7 +202,7 @@ export function createFallbackReviewDraft(input: ArticleGenerationInput, reason:
     excerpt,
     seoTitle: trimText(title, 68),
     metaDescription,
-    category: input.topic.source === "keyword-only" ? input.siteProfile.primaryNiche : "Technology News",
+    category: input.topic.source === "keyword-only" ? input.siteProfile.primaryNiche : input.siteProfile.primaryNiche,
     tags: secondaryKeywords.slice(0, 6),
     focusKeyword: primaryKeyword,
     secondaryKeywords,
@@ -209,11 +210,11 @@ export function createFallbackReviewDraft(input: ArticleGenerationInput, reason:
     faqs: [
       {
         question: `What is ${topicTitle} about?`,
-        answer: `It is a technology topic connected to ${primaryKeyword}, with practical relevance for software, SEO, and business teams.`,
+        answer: `It is a local service topic connected to ${primaryKeyword}, with practical relevance for readers comparing providers before shortlisting.`,
       },
     ],
-    imageBrief: `Create a clean editorial technology cover for an article about ${topicTitle}. Show a practical software workspace, subtle data and search context, balanced detail, no text overlay, no fake logos, no clutter.`,
-    imageAlt: trimText(`Editorial technology cover for ${topicTitle}`, 150),
+    imageBrief: `Create a clean local discovery guide cover for an article about ${topicTitle}. Show a practical research desk with local maps, notes, service comparison material, balanced detail, no text overlay, no fake logos, no clutter.`,
+    imageAlt: trimText(`Local discovery guide cover for ${topicTitle}`, 150),
     factCheckPassed: false,
     informationGain: "LOW",
   };
@@ -231,7 +232,7 @@ export async function planFeaturedImage(draft: ArticleDraft, input: ArticleGener
           articleBrief: draft.imageBrief,
           topic: input.topic,
           styleRules: [
-            "modern editorial technology cover",
+            "modern local discovery guide cover",
             "balanced detail, not too busy, not too minimal",
             "realistic or semi-realistic",
             "no fake logos, no real brand marks, no text overlay, no misleading UI",
@@ -243,7 +244,7 @@ export async function planFeaturedImage(draft: ArticleDraft, input: ArticleGener
     }, imagePlanSchema);
   } catch {
     return {
-      prompt: `Create a professional 16:9 editorial technology cover image for an article titled "${draft.title}". Show a modern software and SEO research workspace with a laptop, abstract data cards, and subtle technology news context. Keep it balanced, polished, realistic, and useful. Avoid fake logos, real brand marks, readable text, text overlays, misleading UI, dark hacker stereotypes, excessive neon, and clutter.`,
+      prompt: `Create a professional 16:9 local discovery guide cover image for an article titled "${draft.title}". Show a polished research desk with a city map, notes, laptop, and service comparison material. Keep it balanced, realistic, and useful. Avoid fake logos, real brand marks, readable text, text overlays, misleading UI, excessive neon, and clutter.`,
       alt: draft.imageAlt,
     };
   }
@@ -251,14 +252,14 @@ export async function planFeaturedImage(draft: ArticleDraft, input: ArticleGener
 
 async function ensureAuthor() {
   const author = await AuthorModel.findOneAndUpdate(
-    { slug: "bluespark-editorial-team" },
+    { slug: "wikibulz-research-team" },
     {
-      name: "Bluespark Editorial Team",
-      slug: "bluespark-editorial-team",
+      name: "Wikibulz Research Team",
+      slug: "wikibulz-research-team",
       email: "editorial@wikibulz.com",
-      bio: "The Bluespark editorial team covers software, SEO, cybersecurity, and practical technology trends.",
-      jobTitle: "Technology Editorial Team",
-      expertise: ["Software", "SEO", "Cybersecurity", "Technology News"],
+      bio: "The Wikibulz Research Team creates local ranking guides using public information, editorial checks, and transparent selection criteria.",
+      jobTitle: "Local Research Desk",
+      expertise: ["Local rankings", "Business discovery", "Editorial research"],
       status: "active",
     },
     { upsert: true, returnDocument: "after" },
@@ -267,13 +268,13 @@ async function ensureAuthor() {
 }
 
 async function ensureCategory(name: string) {
-  const slug = normalizeSlug(name || "Technology News");
+  const slug = normalizeSlug(name || "Local Rankings");
   const category = await CategoryModel.findOneAndUpdate(
     { slug },
     {
-      name: name || "Technology News",
+      name: name || "Local Rankings",
       slug,
-      description: "Technology news, software updates, cybersecurity, AI, and digital strategy.",
+      description: "Local ranking guides and city-wise service comparison resources.",
       indexStatus: "index",
     },
     { upsert: true, returnDocument: "after" },
@@ -350,7 +351,7 @@ export async function createOrUpdateAutomatedPost(input: {
       sources,
       references: sources.slice(1),
       faqs: input.draft.faqs,
-      reviewedBy: input.draft.factCheckPassed ? "Bluespark Editorial Team" : undefined,
+      reviewedBy: input.draft.factCheckPassed ? "Wikibulz Research Team" : undefined,
       lastReviewedAt: input.draft.factCheckPassed ? new Date() : undefined,
     },
     { upsert: true, returnDocument: "after", runValidators: true },

@@ -21,12 +21,20 @@ const nextConfig: NextConfig = {
   output: process.env.DOCKER_BUILD === "true" ? "standalone" : undefined,
   images: {
     formats: ["image/avif", "image/webp"],
-    unoptimized: true,
+    minimumCacheTTL: 31536000,
     remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
   async headers() {
     const adminPrefix = "/" + (process.env.ADMIN_PATH_SECRET?.trim().replace(/^\/+|\/+$/g, "") || "control-room");
     return [{
+      source: "/:path*",
+      headers: [
+        { key: "X-DNS-Prefetch-Control", value: "on" },
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      ],
+    }, {
       source: `${adminPrefix}/:path*`,
       headers: [
         { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
@@ -41,7 +49,6 @@ const nextConfig: NextConfig = {
   async redirects() {
     const adminPrefix = "/" + (process.env.ADMIN_PATH_SECRET?.trim().replace(/^\/+|\/+$/g, "") || "control-room");
     return [
-      { source: "/investing/top-index-funds", destination: "/investing/best-index-funds", permanent: true },
       { source: "/admin", destination: `${adminPrefix}/`, permanent: false },
       { source: "/admin/:path*", destination: `${adminPrefix}/:path*`, permanent: false },
       { source: "/api/admin", destination: `${adminPrefix}/api/`, permanent: false },
