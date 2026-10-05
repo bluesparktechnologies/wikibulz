@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import sharp from "sharp";
 import { isValidObjectId } from "mongoose";
 import { z } from "zod";
 import { findRootSlugConflict } from "@/lib/admin/root-slug-conflicts";
@@ -11,8 +10,8 @@ import { hashPassword } from "@/lib/auth/session";
 import { connectMongo } from "@/lib/db/mongoose";
 import { buildPostUrl, normalizeSlug } from "@/lib/seo/url";
 import { canonicalUrlSchema, categoryFormSchema, locationFormSchema } from "@/lib/validation/content";
-import { AuthorModel, CategoryModel, CityModel, CountryModel, MediaAssetModel, PageModel, PostModel, RedirectModel, SeoRevisionModel, StateModel, TagModel, UserModel } from "@/models/schemas";
-import { getStorageAdapter, validateImageUpload } from "@/services/media";
+import { AuthorModel, CategoryModel, CityModel, CountryModel, PageModel, PostModel, RedirectModel, SeoRevisionModel, StateModel, TagModel, UserModel } from "@/models/schemas";
+import { createMediaAsset } from "@/services/media";
 import type { MediaAsset, UserRole } from "@/types/content";
 
 export type AdminEntity = { id: string; name: string; slug: string };
@@ -206,31 +205,7 @@ export async function saveTagAction(_state: AdminActionState, formData: FormData
 async function storeAuthorAvatar(formData: FormData, fallbackAlt: string) {
   const file = formData.get("avatarFile");
   if (!(file instanceof File) || file.size === 0) return null;
-  const validationError = validateImageUpload({ type: file.type, size: file.size });
-  if (validationError) throw new Error(validationError);
-
-  const baseName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-z0-9.-]/gi, "-").toLowerCase();
-  const key = `${Date.now()}-${baseName || "author-profile"}.webp`;
-  const input = Buffer.from(await file.arrayBuffer());
-  const { data, info } = await sharp(input, { failOn: "none" })
-    .rotate()
-    .resize({ width: 800, height: 800, fit: "cover", withoutEnlargement: true })
-    .webp({ quality: 84, effort: 4 })
-    .toBuffer({ resolveWithObject: true });
-
-  const stored = await getStorageAdapter().putBuffer(data, key, "image/webp");
-  const asset = {
-    url: stored.url,
-    alt: val(formData, "avatarAlt").trim() || fallbackAlt,
-    width: info.width,
-    height: info.height,
-    fileSize: data.length,
-    mimeType: "image/webp",
-    provider: stored.provider,
-    usageReferences: ["author-profile"],
-  };
-  await MediaAssetModel.updateOne({ url: asset.url }, asset, { upsert: true });
-  return asset;
+  return createMediaAsset({ file, alt: val(formData, "avatarAlt").trim() || fallbackAlt, prefix: "authors", usageReferences: ["author-profile"], square: true });
 }
 
 function authorAvatarFromForm(formData: FormData, uploaded: Awaited<ReturnType<typeof storeAuthorAvatar>>, fallbackAlt: string): MediaAsset | undefined {

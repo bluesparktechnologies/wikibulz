@@ -4,6 +4,11 @@ import { normalizePostSlug } from "@/lib/seo/post-slug";
 import { isSameOriginCanonical, normalizePath } from "@/lib/seo/url";
 
 const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
+function normalizeRedirectDestination(value: string) {
+  const trimmed = value.trim();
+  if (/^https?:\/\//i.test(trimmed)) return new URL(trimmed).toString();
+  return normalizePath(trimmed);
+}
 export const canonicalUrlSchema = z.preprocess(emptyToUndefined, z.string().url().refine(isSameOriginCanonical, "Canonical URL must use this site's configured origin.").optional());
 const imageUrlSchema = z.string().min(1).refine((value) => value.startsWith("/") || z.string().url().safeParse(value).success, "Enter a valid image URL.");
 export const postSlugSchema = z.preprocess(
@@ -104,7 +109,7 @@ export const locationFormSchema = z.object({
 
 export const redirectFormSchema = z.object({
   sourcePath: z.string().min(1).transform(normalizePath),
-  destinationPath: z.string().min(1).transform(normalizePath),
+  destinationPath: z.string().min(1).transform(normalizeRedirectDestination),
   statusCode: z.coerce.number().pipe(z.union([z.literal(301), z.literal(302), z.literal(307), z.literal(308)])),
   active: z.coerce.boolean().default(true),
 });

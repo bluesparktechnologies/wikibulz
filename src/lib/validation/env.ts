@@ -38,6 +38,7 @@ const envSchema = z.object({
   SITE_NAME: optionalNonEmptyString,
   MEDIA_PROVIDER: z.preprocess(emptyToUndefined, z.enum(["local", "r2"]).optional()),
   MEDIA_PUBLIC_URL: optionalUrl,
+  MEDIA_UPLOAD_DIR: optionalString,
   R2_ACCOUNT_ID: optionalString,
   R2_ACCESS_KEY_ID: optionalString,
   R2_SECRET_ACCESS_KEY: optionalString,

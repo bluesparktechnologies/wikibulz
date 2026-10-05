@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import sharp from "sharp";
 import { isValidObjectId } from "mongoose";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/guards";
@@ -14,11 +13,11 @@ import { buildPostUrl, normalizeSlug } from "@/lib/seo/url";
 import { structuredRawValues } from "@/lib/admin/structured-fields";
 import { postFormSchema } from "@/lib/validation/content";
 import { invalidatePost } from "@/lib/cache/invalidation";
-import { InternalLinkModel, MediaAssetModel, PostModel, RedirectModel, TagModel, postCategoryPopulate, postLocationPopulate } from "@/models/schemas";
+import { InternalLinkModel, PostModel, RedirectModel, TagModel, postCategoryPopulate, postLocationPopulate } from "@/models/schemas";
 import { PublishingQueueModel, RefreshCandidateModel } from "@/modules/autoblog/models/schemas";
 import { getPostById } from "@/repositories/content.repository";
 import { mapPost } from "@/repositories/mappers";
-import { getStorageAdapter, validateImageUpload } from "@/services/media";
+import { createMediaAsset, markMediaUsed, unmarkMediaUsed } from "@/services/media";
 
 export type PostActionState = { ok: boolean; message: string };
 
@@ -125,6 +124,11 @@ function parseFaqLines(value?: string) {
     .filter((item) => item.question.length >= 5 && item.answer.length >= 10);
 }
 
+function numberFromForm(formData: FormData, key: string, fallback: number) {
+  const value = Number(formValue(formData, key));
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
 function mediaFromUrl(url: string | undefined, alt: string | undefined, fallback: { url: string; alt: string; width: number; height: number }) {
   if (!url) return null;
   return { url, alt: alt || fallback.alt, width: fallback.width, height: fallback.height };
@@ -133,31 +137,12 @@ function mediaFromUrl(url: string | undefined, alt: string | undefined, fallback
 async function storeFeaturedImage(formData: FormData, fallbackAlt: string) {
   const file = formData.get("featuredImageFile");
   if (!(file instanceof File) || file.size === 0) return null;
-  const validationError = validateImageUpload({ type: file.type, size: file.size });
-  if (validationError) throw new Error(validationError);
-  const baseName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-z0-9.-]/gi, "-").toLowerCase();
-  const key = `${Date.now()}-${baseName || "featured-image"}.webp`;
-  const input = Buffer.from(await file.arrayBuffer());
-  const metadata = await sharp(input, { failOn: "none" }).metadata();
-  const targetWidth = metadata.width && metadata.width > 2400 ? 2400 : undefined;
-  const { data, info } = await sharp(input, { failOn: "none" })
-    .rotate()
-    .resize({ width: targetWidth, withoutEnlargement: true })
-    .webp({ quality: 82, effort: 4 })
-    .toBuffer({ resolveWithObject: true });
-  const stored = await getStorageAdapter().putBuffer(data, key, "image/webp");
-  const asset = {
-    url: stored.url,
-    alt: formValue(formData, "featuredImageAlt").trim() || fallbackAlt,
-    width: info.width,
-    height: info.height,
-    fileSize: data.length,
-    mimeType: "image/webp",
-    provider: stored.provider,
-    usageReferences: [],
-  };
-  await MediaAssetModel.updateOne({ url: asset.url }, asset, { upsert: true });
-  return asset;
+  return createMediaAsset({ file, alt: formValue(formData, "featuredImageAlt").trim() || fallbackAlt, prefix: "featured" });
+}
+
+function shouldSyncSocialImage(previousUrl: string | undefined, previousFeaturedUrl: string | undefined, nextInputUrl: string | undefined) {
+  if (!nextInputUrl) return true;
+  return Boolean(previousUrl && previousFeaturedUrl && previousUrl === previousFeaturedUrl && nextInputUrl === previousUrl);
 }
 
 async function resolveTagIds(selectedTags: string[], newTagNames: string[]) {
@@ -211,6 +196,18 @@ export async function savePostAction(_state: PostActionState, formData: FormData
   const featuredImageUrl = uploadedImage?.url ?? parsed.featuredImageUrl ?? previous?.featuredImage.url;
   if (!featuredImageUrl) return { ok: false, message: "Add a featured image URL or upload a featured image." };
   const featuredImageAlt = uploadedImage?.alt ?? parsed.featuredImageAlt ?? previous?.featuredImage.alt ?? parsed.title;
+  const featuredImage = {
+    url: featuredImageUrl,
+    alt: featuredImageAlt,
+    width: uploadedImage?.width ?? numberFromForm(formData, "featuredImageWidth", previous?.featuredImage.width ?? 1600),
+    height: uploadedImage?.height ?? numberFromForm(formData, "featuredImageHeight", previous?.featuredImage.height ?? 900),
+  };
+  const ogImage = shouldSyncSocialImage(previous?.ogImage?.url, previous?.featuredImage.url, parsed.ogImageUrl)
+    ? featuredImage
+    : mediaFromUrl(parsed.ogImageUrl, parsed.ogImageAlt, featuredImage);
+  const twitterImage = shouldSyncSocialImage(previous?.twitterImage?.url, previous?.featuredImage.url, parsed.twitterImageUrl)
+    ? featuredImage
+    : mediaFromUrl(parsed.twitterImageUrl, parsed.twitterImageAlt, featuredImage);
   let savedDoc: Record<string, unknown> | null = null;
   try {
     const tagIds = await resolveTagIds(formData.getAll("tags").map((item) => item.toString()), parsed.newTags);
@@ -222,12 +219,7 @@ export async function savePostAction(_state: PostActionState, formData: FormData
     publicId: previous?.publicId,
     excerpt: parsed.excerpt,
     content: safeContent,
-    featuredImage: {
-      url: featuredImageUrl,
-      alt: featuredImageAlt,
-      width: uploadedImage?.width ?? previous?.featuredImage.width ?? 1600,
-      height: uploadedImage?.height ?? previous?.featuredImage.height ?? 900,
-    },
+    featuredImage,
     author: parsed.author,
     country: parsed.country ?? null,
     state: parsed.state ?? null,
@@ -242,10 +234,10 @@ export async function savePostAction(_state: PostActionState, formData: FormData
     canonicalUrl: parsed.canonicalUrl,
     ogTitle: parsed.ogTitle,
     ogDescription: parsed.ogDescription,
-    ogImage: mediaFromUrl(parsed.ogImageUrl, parsed.ogImageAlt, { url: featuredImageUrl, alt: featuredImageAlt, width: uploadedImage?.width ?? previous?.featuredImage.width ?? 1600, height: uploadedImage?.height ?? previous?.featuredImage.height ?? 900 }),
+    ogImage,
     twitterTitle: parsed.twitterTitle,
     twitterDescription: parsed.twitterDescription,
-    twitterImage: mediaFromUrl(parsed.twitterImageUrl, parsed.twitterImageAlt, { url: featuredImageUrl, alt: featuredImageAlt, width: uploadedImage?.width ?? previous?.featuredImage.width ?? 1600, height: uploadedImage?.height ?? previous?.featuredImage.height ?? 900 }),
+    twitterImage,
     robotsIndex: parsed.robotsIndex,
     robotsFollow: parsed.robotsFollow,
     focusKeyword: parsed.focusKeyword,
@@ -280,6 +272,13 @@ export async function savePostAction(_state: PostActionState, formData: FormData
 
   if (!savedDoc) return { ok: false, message: "Post was not found." };
   const savedPost = mapPost(JSON.parse(JSON.stringify(savedDoc)));
+  const usageReference = `post:${savedPost.id}:${savedPost.slug}`;
+  const previousUsageReference = previous ? `post:${previous.id}:${previous.slug}` : usageReference;
+  const previousMediaUrls = [previous?.featuredImage.url, previous?.ogImage?.url, previous?.twitterImage?.url];
+  const nextMediaUrls = [savedPost.featuredImage.url, savedPost.ogImage?.url, savedPost.twitterImage?.url];
+  await unmarkMediaUsed(previousMediaUrls.filter((url) => !nextMediaUrls.includes(url)), previousUsageReference);
+  if (previousUsageReference !== usageReference) await unmarkMediaUsed(previousMediaUrls, previousUsageReference);
+  await markMediaUsed(nextMediaUrls, usageReference);
 
   if (previous && previous.status === "published") {
     const oldPath = buildPostUrl(previous);
@@ -293,9 +292,9 @@ export async function savePostAction(_state: PostActionState, formData: FormData
     }
   }
 
-  revalidatePath("/");
+  if (previous) await invalidatePost(previous);
+  await invalidatePost(savedPost);
   revalidatePath("/admin/posts");
-  revalidatePath(buildPostUrl(savedPost));
   redirect(`/admin/posts/${savedPost.id}`);
 }
 
@@ -312,9 +311,9 @@ export async function publishPostAction(formData: FormData) {
   ).populate("author reviewer factCheckedBy tags").populate(postCategoryPopulate).populate(postLocationPopulate).lean();
   if (!doc) throw new Error("Post not found.");
   const post = mapPost(JSON.parse(JSON.stringify(doc)));
-  revalidatePath("/");
+  await markMediaUsed([post.featuredImage.url, post.ogImage?.url, post.twitterImage?.url], `post:${post.id}:${post.slug}`);
+  await invalidatePost(post);
   revalidatePath("/admin/posts");
-  revalidatePath(buildPostUrl(post));
   redirect(`/admin/posts/${post.id}`);
 }
 

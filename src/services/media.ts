@@ -1,11 +1,24 @@
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { env } from "@/lib/validation/env";
+import { MediaAssetModel } from "@/models/schemas";
 
 export type StoredMedia = {
   url: string;
   provider: "local" | "r2";
+};
+
+export type StoredMediaAsset = {
+  url: string;
+  alt: string;
+  width: number;
+  height: number;
+  fileSize: number;
+  mimeType: string;
+  provider: "local" | "r2";
+  usageReferences: string[];
 };
 
 export type StorageAdapter = {
@@ -21,15 +34,38 @@ export function validateImageUpload(file: { type: string; size: number }) {
   return null;
 }
 
+export function uploadRoot() {
+  return path.resolve(env.MEDIA_UPLOAD_DIR?.trim() || path.join(process.cwd(), ".data", "uploads"));
+}
+
+export function localUploadPath(key: string) {
+  const safeKey = key.replace(/^\/+/, "").replace(/\\/g, "/");
+  const root = uploadRoot();
+  const resolved = path.resolve(root, safeKey);
+  const relative = path.relative(root, resolved);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Invalid upload path.");
+  return resolved;
+}
+
+export async function readLocalUpload(key: string) {
+  return readFile(localUploadPath(key));
+}
+
+function publicLocalUrl(key: string) {
+  const publicBase = env.MEDIA_PUBLIC_URL?.trim();
+  if (publicBase) return `${publicBase.replace(/\/$/, "")}/${key}`;
+  return `/uploads/${key}`;
+}
+
 export const localStorageAdapter: StorageAdapter = {
   async putBuffer(buffer, key) {
-    const fullPath = path.join(process.cwd(), "public", "uploads", key);
+    const fullPath = localUploadPath(key);
     await mkdir(path.dirname(fullPath), { recursive: true });
     await writeFile(fullPath, buffer);
-    return { url: `/uploads/${key}`, provider: "local" };
+    return { url: publicLocalUrl(key), provider: "local" };
   },
   async delete(key) {
-    await unlink(path.join(process.cwd(), "public", "uploads", key)).catch(() => undefined);
+    await unlink(localUploadPath(key)).catch(() => undefined);
   },
 };
 
@@ -74,4 +110,54 @@ export const r2StorageAdapter: StorageAdapter = {
 
 export function getStorageAdapter() {
   return env.MEDIA_PROVIDER === "r2" ? r2StorageAdapter : localStorageAdapter;
+}
+
+function mediaKey(fileName: string, prefix = "media") {
+  const baseName = fileName.replace(/\.[^.]+$/, "").replace(/[^a-z0-9.-]/gi, "-").replace(/-+/g, "-").toLowerCase();
+  return `${prefix}/${Date.now()}-${baseName || "image"}.webp`;
+}
+
+export async function optimizeImage(file: File, options: { square?: boolean } = {}) {
+  const validationError = validateImageUpload({ type: file.type, size: file.size });
+  if (validationError) throw new Error(validationError);
+  const input = Buffer.from(await file.arrayBuffer());
+  const metadata = await sharp(input, { failOn: "none" }).metadata();
+  const targetWidth = options.square ? 800 : metadata.width && metadata.width > 2400 ? 2400 : undefined;
+  const pipeline = sharp(input, { failOn: "none" }).rotate();
+  const resized = options.square
+    ? pipeline.resize({ width: 800, height: 800, fit: "cover", withoutEnlargement: true })
+    : pipeline.resize({ width: targetWidth, withoutEnlargement: true });
+  const { data, info } = await resized.webp({ quality: options.square ? 84 : 82, effort: 4 }).toBuffer({ resolveWithObject: true });
+  return { data, width: info.width, height: info.height, mimeType: "image/webp", fileSize: data.length };
+}
+
+export async function createMediaAsset(input: { file: File; alt?: string; prefix?: string; usageReferences?: string[]; square?: boolean }) {
+  const optimized = await optimizeImage(input.file, { square: input.square });
+  const key = mediaKey(input.file.name, input.prefix);
+  const stored = await getStorageAdapter().putBuffer(optimized.data, key, optimized.mimeType);
+  const alt = input.alt?.trim() || input.file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
+  const asset: StoredMediaAsset = {
+    url: stored.url,
+    alt,
+    width: optimized.width,
+    height: optimized.height,
+    fileSize: optimized.fileSize,
+    mimeType: optimized.mimeType,
+    provider: stored.provider,
+    usageReferences: input.usageReferences ?? [],
+  };
+  await MediaAssetModel.updateOne({ url: asset.url }, asset, { upsert: true });
+  return asset;
+}
+
+export async function markMediaUsed(urls: Array<string | undefined>, reference: string) {
+  const uniqueUrls = Array.from(new Set(urls.filter((url): url is string => Boolean(url))));
+  if (!uniqueUrls.length) return;
+  await MediaAssetModel.updateMany({ url: { $in: uniqueUrls } }, { $addToSet: { usageReferences: reference } });
+}
+
+export async function unmarkMediaUsed(urls: Array<string | undefined>, reference: string) {
+  const uniqueUrls = Array.from(new Set(urls.filter((url): url is string => Boolean(url))));
+  if (!uniqueUrls.length) return;
+  await MediaAssetModel.updateMany({ url: { $in: uniqueUrls } }, { $pull: { usageReferences: reference } });
 }
