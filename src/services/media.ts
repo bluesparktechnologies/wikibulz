@@ -1,4 +1,4 @@
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
@@ -49,6 +49,26 @@ export function localUploadPath(key: string) {
 
 export async function readLocalUpload(key: string) {
   return readFile(localUploadPath(key));
+}
+
+export function keyFromLocalUploadUrl(url: string) {
+  if (!url.startsWith("/uploads/")) return null;
+  const key = decodeURIComponent(url.slice("/uploads/".length));
+  return key && !key.startsWith("/") ? key : null;
+}
+
+export async function localUploadExists(key: string) {
+  try {
+    await access(localUploadPath(key));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function localUploadUrlExists(url: string) {
+  const key = keyFromLocalUploadUrl(url);
+  return key ? localUploadExists(key) : true;
 }
 
 function publicLocalUrl(key: string) {

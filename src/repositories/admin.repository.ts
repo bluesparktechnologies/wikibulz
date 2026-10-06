@@ -2,6 +2,7 @@ import { authors, categories, cities, countries, states, staticPages, tags } fro
 import { connectMongo } from "@/lib/db/mongoose";
 import { AuthorModel, CategoryModel, CityModel, CountryModel, MediaAssetModel, PageModel, SeoRevisionModel, StateModel, TagModel, UserModel } from "@/models/schemas";
 import { mapAuthor, mapCategory, mapCity, mapCountry, mapMedia, mapState, mapStaticPage, mapTag } from "@/repositories/mappers";
+import { localUploadUrlExists } from "@/services/media";
 import type { Author, Category, City, Country, StateRegion, StaticPage, Tag, UserRole } from "@/types/content";
 
 type UserDoc = { _id: unknown; email?: unknown; name?: unknown; role?: unknown; active?: unknown; createdAt?: unknown; updatedAt?: unknown };
@@ -83,8 +84,9 @@ export async function getAdminMedia(): Promise<AdminMedia[]> {
   const db = await connectMongo();
   if (!db) return [];
   const docs = await MediaAssetModel.find({}).sort({ updatedAt: -1 }).limit(200).lean();
-  return JSON.parse(JSON.stringify(docs)).map((doc: Record<string, unknown>) => {
+  const rows = await Promise.all(JSON.parse(JSON.stringify(docs)).map(async (doc: Record<string, unknown>) => {
     const media = mapMedia(doc);
+    if (!(await localUploadUrlExists(media.url))) return null;
     return {
       id: String(doc._id ?? ""),
       ...media,
@@ -93,7 +95,8 @@ export async function getAdminMedia(): Promise<AdminMedia[]> {
       provider: typeof doc.provider === "string" ? doc.provider : "local",
       usageReferences: Array.isArray(doc.usageReferences) ? doc.usageReferences.map(String) : [],
     };
-  });
+  }));
+  return rows.filter((row): row is AdminMedia => Boolean(row));
 }
 
 export async function getSeoRevisions(limit = 100): Promise<SeoRevision[]> {

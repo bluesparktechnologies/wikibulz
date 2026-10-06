@@ -17,7 +17,7 @@ import { InternalLinkModel, PostModel, RedirectModel, TagModel, postCategoryPopu
 import { PublishingQueueModel, RefreshCandidateModel } from "@/modules/autoblog/models/schemas";
 import { getPostById } from "@/repositories/content.repository";
 import { mapPost } from "@/repositories/mappers";
-import { createMediaAsset, markMediaUsed, unmarkMediaUsed } from "@/services/media";
+import { createMediaAsset, keyFromLocalUploadUrl, localUploadUrlExists, markMediaUsed, unmarkMediaUsed } from "@/services/media";
 
 export type PostActionState = { ok: boolean; message: string };
 
@@ -195,6 +195,14 @@ export async function savePostAction(_state: PostActionState, formData: FormData
   }
   const featuredImageUrl = uploadedImage?.url ?? parsed.featuredImageUrl ?? previous?.featuredImage.url;
   if (!featuredImageUrl) return { ok: false, message: "Add a featured image URL or upload a featured image." };
+  if (keyFromLocalUploadUrl(featuredImageUrl) && !(await localUploadUrlExists(featuredImageUrl))) {
+    return { ok: false, message: "Featured image file is missing on the server. Upload the image again instead of using this media library item." };
+  }
+  for (const [label, url] of [["Open Graph image", parsed.ogImageUrl], ["Twitter image", parsed.twitterImageUrl]] as const) {
+    if (url && keyFromLocalUploadUrl(url) && !(await localUploadUrlExists(url))) {
+      return { ok: false, message: `${label} file is missing on the server. Upload the image again or use a working image URL.` };
+    }
+  }
   const featuredImageAlt = uploadedImage?.alt ?? parsed.featuredImageAlt ?? previous?.featuredImage.alt ?? parsed.title;
   const featuredImage = {
     url: featuredImageUrl,
