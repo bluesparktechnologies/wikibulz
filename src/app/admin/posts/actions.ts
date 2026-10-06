@@ -198,11 +198,6 @@ export async function savePostAction(_state: PostActionState, formData: FormData
   if (keyFromLocalUploadUrl(featuredImageUrl) && !(await localUploadUrlExists(featuredImageUrl))) {
     return { ok: false, message: "Featured image file is missing on the server. Upload the image again instead of using this media library item." };
   }
-  for (const [label, url] of [["Open Graph image", parsed.ogImageUrl], ["Twitter image", parsed.twitterImageUrl]] as const) {
-    if (url && keyFromLocalUploadUrl(url) && !(await localUploadUrlExists(url))) {
-      return { ok: false, message: `${label} file is missing on the server. Upload the image again or use a working image URL.` };
-    }
-  }
   const featuredImageAlt = uploadedImage?.alt ?? parsed.featuredImageAlt ?? previous?.featuredImage.alt ?? parsed.title;
   const featuredImage = {
     url: featuredImageUrl,
@@ -210,10 +205,20 @@ export async function savePostAction(_state: PostActionState, formData: FormData
     width: uploadedImage?.width ?? numberFromForm(formData, "featuredImageWidth", previous?.featuredImage.width ?? 1600),
     height: uploadedImage?.height ?? numberFromForm(formData, "featuredImageHeight", previous?.featuredImage.height ?? 900),
   };
-  const ogImage = shouldSyncSocialImage(previous?.ogImage?.url, previous?.featuredImage.url, parsed.ogImageUrl)
+  const syncOgImage = shouldSyncSocialImage(previous?.ogImage?.url, previous?.featuredImage.url, parsed.ogImageUrl);
+  const syncTwitterImage = shouldSyncSocialImage(previous?.twitterImage?.url, previous?.featuredImage.url, parsed.twitterImageUrl);
+  for (const [label, url, willSync] of [
+    ["Open Graph image", parsed.ogImageUrl, syncOgImage],
+    ["Twitter image", parsed.twitterImageUrl, syncTwitterImage],
+  ] as const) {
+    if (!willSync && url && keyFromLocalUploadUrl(url) && !(await localUploadUrlExists(url))) {
+      return { ok: false, message: `${label} file is missing on the server. Upload the image again or use a working image URL.` };
+    }
+  }
+  const ogImage = syncOgImage
     ? featuredImage
     : mediaFromUrl(parsed.ogImageUrl, parsed.ogImageAlt, featuredImage);
-  const twitterImage = shouldSyncSocialImage(previous?.twitterImage?.url, previous?.featuredImage.url, parsed.twitterImageUrl)
+  const twitterImage = syncTwitterImage
     ? featuredImage
     : mediaFromUrl(parsed.twitterImageUrl, parsed.twitterImageAlt, featuredImage);
   let savedDoc: Record<string, unknown> | null = null;
