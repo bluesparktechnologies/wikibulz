@@ -145,6 +145,11 @@ function shouldSyncSocialImage(previousUrl: string | undefined, previousFeatured
   return Boolean(previousUrl && previousFeaturedUrl && previousUrl === previousFeaturedUrl && nextInputUrl === previousUrl);
 }
 
+function shouldUseFeaturedImageForSocial(uploadedImage: unknown, previousUrl: string | undefined, previousFeaturedUrl: string | undefined, nextInputUrl: string | undefined) {
+  if (uploadedImage) return true;
+  return shouldSyncSocialImage(previousUrl, previousFeaturedUrl, nextInputUrl);
+}
+
 async function resolveTagIds(selectedTags: string[], newTagNames: string[]) {
   const tagIds = new Set(selectedTags.filter(Boolean));
   for (const name of newTagNames) {
@@ -205,8 +210,8 @@ export async function savePostAction(_state: PostActionState, formData: FormData
     width: uploadedImage?.width ?? numberFromForm(formData, "featuredImageWidth", previous?.featuredImage.width ?? 1600),
     height: uploadedImage?.height ?? numberFromForm(formData, "featuredImageHeight", previous?.featuredImage.height ?? 900),
   };
-  const syncOgImage = shouldSyncSocialImage(previous?.ogImage?.url, previous?.featuredImage.url, parsed.ogImageUrl);
-  const syncTwitterImage = shouldSyncSocialImage(previous?.twitterImage?.url, previous?.featuredImage.url, parsed.twitterImageUrl);
+  const syncOgImage = shouldUseFeaturedImageForSocial(uploadedImage, previous?.ogImage?.url, previous?.featuredImage.url, parsed.ogImageUrl);
+  const syncTwitterImage = shouldUseFeaturedImageForSocial(uploadedImage, previous?.twitterImage?.url, previous?.featuredImage.url, parsed.twitterImageUrl);
   for (const [label, url, willSync] of [
     ["Open Graph image", parsed.ogImageUrl, syncOgImage],
     ["Twitter image", parsed.twitterImageUrl, syncTwitterImage],
