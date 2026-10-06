@@ -7,10 +7,8 @@ import { buildCategoryUrl } from "@/lib/seo/url";
 import { buildCategoryTree, type CategoryTreeNode } from "@/lib/seo/category-tree";
 
 const fallbackTopics = [
-  { label: "Healthcare", href: "/category/healthcare" },
-  { label: "Education", href: "/category/education" },
-  { label: "Business Services", href: "/category/business-services" },
-  { label: "SEO Agencies", href: "/category/business-services/seo-agencies" },
+  { label: "Latest guides", href: "/blog" },
+  { label: "How we rank", href: "/how-we-rank" },
 ];
 
 type NavigationTopic = { label: string; href: string; children?: NavigationTopic[] };
@@ -112,8 +110,8 @@ export function Footer() {
             <ul className="mt-3 space-y-2 text-sm text-[#d4e2dc]">
               <li><Link href="/blog" className="transition hover:text-white">Latest guides</Link></li>
               <li><Link href="/archive" className="transition hover:text-white">Archive</Link></li>
-              <li><Link href="/category/healthcare" className="transition hover:text-white">Healthcare</Link></li>
-              <li><Link href="/category/education" className="transition hover:text-white">Education</Link></li>
+              <li><Link href="/how-we-rank" className="transition hover:text-white">How we rank</Link></li>
+              <li><Link href="/editorial-policy" className="transition hover:text-white">Editorial policy</Link></li>
             </ul>
           </div>
           <div>

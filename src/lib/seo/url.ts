@@ -79,6 +79,14 @@ function isSiteRootUrl(value: string) {
     return false;
   }
 }
+function isLegacyLocationCanonical(value: string) {
+  try {
+    const candidate = new URL(value, seoConfig.siteUrl);
+    return normalizePathname(candidate.pathname).startsWith("/location/");
+  } catch {
+    return false;
+  }
+}
 export function resolvePostCanonical(post: Pick<Post, "slug" | "category" | "canonicalUrl">) {
   const fallback = absoluteUrl(buildPostUrl(post));
   if (!post.canonicalUrl || !isSameOriginCanonical(post.canonicalUrl)) return fallback;
@@ -90,5 +98,5 @@ export function resolveCategoryCanonical(category: Pick<Category, "slug" | "cano
   return page > 1 ? buildCanonicalUrl(fallback) : resolveCanonicalUrl(category.canonicalUrl, fallback);
 }
 export function resolveLocationCanonical(location: Pick<LocationEntity, "slug" | "canonicalUrl">) {
-  return resolveCanonicalUrl(location.canonicalUrl, buildLocationUrl(location));
+  return location.canonicalUrl && !isLegacyLocationCanonical(location.canonicalUrl) ? resolveCanonicalUrl(location.canonicalUrl, buildLocationUrl(location)) : buildCanonicalUrl(buildLocationUrl(location));
 }

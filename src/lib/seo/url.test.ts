@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seoConfig } from "@/config/seo";
-import { buildCanonicalUrl, buildPostUrl, matchesPostSlug, normalizeCategorySlug, normalizePath, normalizeRedirectDestination, normalizeSlug, resolveCategoryCanonical, resolveCanonicalUrl, resolvePostCanonical } from "./url";
+import { buildCanonicalUrl, buildPostUrl, matchesPostSlug, normalizeCategorySlug, normalizePath, normalizeRedirectDestination, normalizeSlug, resolveCategoryCanonical, resolveCanonicalUrl, resolveLocationCanonical, resolvePostCanonical } from "./url";
 describe("SEO URL utilities", () => {
   it("normalizes slugs", () => { expect(normalizeSlug("Best Dentists in Lucknow!")).toBe("best-dentists-in-lucknow"); });
   it("preserves slash-separated category slug paths", () => { expect(normalizeCategorySlug("Arpit//Sharma/")).toBe("arpit/sharma"); });
@@ -37,6 +37,9 @@ describe("SEO URL utilities", () => {
       canonicalUrl: `${seoConfig.siteUrl}/`,
     };
     expect(resolvePostCanonical(post)).toBe(`${seoConfig.siteUrl}/best-dentists-in-lucknow`);
+  });
+  it("ignores legacy location canonicals that include the removed location prefix", () => {
+    expect(resolveLocationCanonical({ slug: "bareilly", canonicalUrl: `${seoConfig.siteUrl}/location/india/uttar-pradesh/bareilly` })).toBe(`${seoConfig.siteUrl}/bareilly`);
   });
   it("resolves both new slug-only URLs and legacy identifier URLs", () => {
     const newPost = { slug: "best-dentists-in-lucknow" };
