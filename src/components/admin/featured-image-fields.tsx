@@ -12,6 +12,8 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
   const [height, setHeight] = useState(currentImage?.height ?? 900);
   const [previewUrl, setPreviewUrl] = useState("");
   const [broken, setBroken] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState("");
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -28,12 +30,32 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
     if (item?.height) setHeight(item.height);
   }
 
-  function chooseFile(file?: File) {
+  async function chooseFile(file?: File) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(file ? URL.createObjectURL(file) : "");
     setBroken(false);
+    setUploadMessage("");
     if (file) setUrl("");
     if (file && !alt) setAlt(file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "));
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("alt", alt || file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "));
+      const response = await fetch("/api/admin/media", { method: "POST", body: formData });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.url) throw new Error(payload?.error || "Image upload failed.");
+      setUrl(payload.url);
+      setWidth(payload.width || 1600);
+      setHeight(payload.height || 900);
+      if (payload.alt) setAlt(payload.alt);
+      setUploadMessage("Image uploaded. Save post to apply it.");
+    } catch (error) {
+      setUploadMessage(error instanceof Error ? error.message : "Image upload failed.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   const visiblePreview = previewUrl || url;
@@ -42,7 +64,9 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 rounded-lg border border-[var(--line)] bg-[#f7faf8] p-4">
       <div className="grid min-w-0 gap-2 text-sm font-bold">
         Upload New Featured Image
-        <input name="featuredImageFile" type="file" accept="image/*" onChange={(event) => chooseFile(event.target.files?.[0])} className="min-w-0 w-full rounded border border-[var(--line)] bg-white px-3 py-2" />
+        <input type="file" accept="image/*" onChange={(event) => { void chooseFile(event.target.files?.[0]); }} className="min-w-0 w-full rounded border border-[var(--line)] bg-white px-3 py-2" />
+        {uploading ? <span className="text-xs font-semibold text-[var(--muted)]">Uploading image...</span> : null}
+        {uploadMessage ? <span className={`text-xs font-semibold ${url ? "text-green-700" : "text-red-700"}`}>{uploadMessage}</span> : null}
       </div>
       {media.length > 0 ? (
         <label className="grid min-w-0 gap-2 text-sm font-bold">
@@ -57,7 +81,7 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
         <label className="grid min-w-0 gap-2 text-sm font-bold">
           Featured Image URL
           <input name="featuredImageUrl" value={url} onChange={(event) => { setBroken(false); setUrl(event.target.value); }} className="min-w-0 w-full rounded border border-[var(--line)] bg-white px-3 py-2" />
-          {previewUrl ? <span className="text-xs font-semibold text-[var(--muted)]">New image selected. Save post to generate its URL.</span> : null}
+          {previewUrl && !url ? <span className="text-xs font-semibold text-[var(--muted)]">New image selected. Uploading will generate its URL.</span> : null}
         </label>
         <label className="grid min-w-0 gap-2 text-sm font-bold">
           Featured Image Alt
