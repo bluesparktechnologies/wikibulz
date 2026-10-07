@@ -19,6 +19,8 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
 
   function chooseMedia(value: string) {
     const item = media.find((asset) => asset.url === value);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl("");
     setBroken(false);
     setUrl(value);
     if (item?.alt) setAlt(item.alt);
@@ -30,6 +32,7 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(file ? URL.createObjectURL(file) : "");
     setBroken(false);
+    if (file) setUrl("");
     if (file && !alt) setAlt(file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "));
   }
 
@@ -54,6 +57,7 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
         <label className="grid min-w-0 gap-2 text-sm font-bold">
           Featured Image URL
           <input name="featuredImageUrl" value={url} onChange={(event) => { setBroken(false); setUrl(event.target.value); }} className="min-w-0 w-full rounded border border-[var(--line)] bg-white px-3 py-2" />
+          {previewUrl ? <span className="text-xs font-semibold text-[var(--muted)]">New image selected. Save post to generate its URL.</span> : null}
         </label>
         <label className="grid min-w-0 gap-2 text-sm font-bold">
           Featured Image Alt
