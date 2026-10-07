@@ -2,12 +2,13 @@ import { access, mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { connectMongo } from "@/lib/db/mongoose";
 import { env } from "@/lib/validation/env";
 import { MediaAssetModel } from "@/models/schemas";
 
 export type StoredMedia = {
   url: string;
-  provider: "local" | "r2";
+  provider: "local" | "mongo" | "r2";
 };
 
 export type StoredMediaAsset = {
@@ -17,7 +18,7 @@ export type StoredMediaAsset = {
   height: number;
   fileSize: number;
   mimeType: string;
-  provider: "local" | "r2";
+  provider: "local" | "mongo" | "r2";
   usageReferences: string[];
 };
 
@@ -48,7 +49,17 @@ export function localUploadPath(key: string) {
 }
 
 export async function readLocalUpload(key: string) {
-  return readFile(localUploadPath(key));
+  try {
+    return await readFile(localUploadPath(key));
+  } catch (error) {
+    const db = await connectMongo();
+    if (!db) throw error;
+    const localUrl = `/uploads/${key}`;
+    const publicUrl = publicLocalUrl(key);
+    const doc = await MediaAssetModel.findOne({ url: { $in: Array.from(new Set([localUrl, publicUrl])) } }).select("data").lean<{ data?: Buffer }>();
+    if (doc?.data) return Buffer.from(doc.data);
+    throw error;
+  }
 }
 
 export function keyFromLocalUploadUrl(url: string) {
@@ -62,7 +73,15 @@ export async function localUploadExists(key: string) {
     await access(localUploadPath(key));
     return true;
   } catch {
-    return false;
+    const db = await connectMongo();
+    if (!db) return false;
+    const localUrl = `/uploads/${key}`;
+    const publicUrl = publicLocalUrl(key);
+    const count = await MediaAssetModel.countDocuments({
+      url: { $in: Array.from(new Set([localUrl, publicUrl])) },
+      data: { $exists: true, $ne: null },
+    });
+    return count > 0;
   }
 }
 
@@ -80,9 +99,13 @@ function publicLocalUrl(key: string) {
 export const localStorageAdapter: StorageAdapter = {
   async putBuffer(buffer, key) {
     const fullPath = localUploadPath(key);
-    await mkdir(path.dirname(fullPath), { recursive: true });
-    await writeFile(fullPath, buffer);
-    return { url: publicLocalUrl(key), provider: "local" };
+    try {
+      await mkdir(path.dirname(fullPath), { recursive: true });
+      await writeFile(fullPath, buffer);
+      return { url: publicLocalUrl(key), provider: "local" };
+    } catch {
+      return { url: `/uploads/${key}`, provider: "mongo" };
+    }
   },
   async delete(key) {
     await unlink(localUploadPath(key)).catch(() => undefined);
@@ -166,7 +189,10 @@ export async function createMediaAsset(input: { file: File; alt?: string; prefix
     provider: stored.provider,
     usageReferences: input.usageReferences ?? [],
   };
-  await MediaAssetModel.updateOne({ url: asset.url }, asset, { upsert: true });
+  const update = stored.provider === "r2"
+    ? { $set: asset, $unset: { data: "" } }
+    : { $set: { ...asset, data: optimized.data } };
+  await MediaAssetModel.updateOne({ url: asset.url }, update, { upsert: true });
   return asset;
 }
 
