@@ -5,6 +5,20 @@ import { useEffect, useState } from "react";
 import type { AdminMedia } from "@/repositories/admin.repository";
 import type { MediaAsset } from "@/types/content";
 
+function getAdminMediaEndpoint() {
+  if (typeof window === "undefined") return "/api/admin/media";
+  const [adminPrefix] = window.location.pathname.split("/").filter(Boolean);
+  if (adminPrefix && adminPrefix !== "admin") return `/${adminPrefix}/api/media`;
+  return "/api/admin/media";
+}
+
+async function readUploadResponse(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) return response.json();
+  const text = await response.text().catch(() => "");
+  return { error: text ? text.slice(0, 180) : `Image upload failed (${response.status}).` };
+}
+
 export function FeaturedImageFields({ currentImage, media }: { currentImage?: MediaAsset; media: AdminMedia[] }) {
   const [url, setUrl] = useState(currentImage?.url ?? "");
   const [alt, setAlt] = useState(currentImage?.alt ?? "");
@@ -43,9 +57,13 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
       const formData = new FormData();
       formData.set("file", file);
       formData.set("alt", alt || file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "));
-      const response = await fetch("/api/admin/media", { method: "POST", body: formData });
-      const payload = await response.json().catch(() => null);
-      if (!response.ok || !payload?.url) throw new Error(payload?.error || "Image upload failed.");
+      const response = await fetch(getAdminMediaEndpoint(), {
+        method: "POST",
+        body: formData,
+        headers: { accept: "application/json" },
+      });
+      const payload = await readUploadResponse(response);
+      if (!response.ok || !payload?.url) throw new Error(payload?.error || `Image upload failed (${response.status}).`);
       setUrl(payload.url);
       setWidth(payload.width || 1600);
       setHeight(payload.height || 900);
