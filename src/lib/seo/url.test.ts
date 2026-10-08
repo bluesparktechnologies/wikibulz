@@ -38,6 +38,14 @@ describe("SEO URL utilities", () => {
     };
     expect(resolvePostCanonical(post)).toBe(`${seoConfig.siteUrl}/best-dentists-in-lucknow`);
   });
+  it("resolves an empty article canonical to its own public URL", () => {
+    const post = {
+      slug: "best-orthodontist-in-bareilly",
+      canonicalUrl: undefined,
+      category: { id: "dentists", name: "Dentists", slug: "dentists", description: "Dental guides", indexStatus: "index" as const },
+    };
+    expect(resolvePostCanonical(post)).toBe(`${seoConfig.siteUrl}/best-orthodontist-in-bareilly`);
+  });
   it("ignores legacy location canonicals that include the removed location prefix", () => {
     expect(resolveLocationCanonical({ slug: "bareilly", canonicalUrl: `${seoConfig.siteUrl}/location/india/uttar-pradesh/bareilly` })).toBe(`${seoConfig.siteUrl}/bareilly`);
   });
