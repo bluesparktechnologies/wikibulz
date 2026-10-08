@@ -15,13 +15,13 @@ type Props = { params: Promise<{ slug: string }> };
 
 export const dynamic = "force-dynamic";
 
-const editorialTeamSlug = "wikibulz-research-team";
+const editorialTeamSlugs = new Set(["wikibulz-research-team", "wikibulz-editorial-research-team"]);
 const editorialTeamName = "Wikibulz Editorial Research Team";
 const editorialTeamTitle = "Local Business Research & Comparison Team";
 const editorialTeamBio = "The Wikibulz Editorial Research Team researches local businesses, professionals, and services to help readers compare options with greater clarity and confidence.";
 
 function authorDisplayProfile(author: Author): Author {
-  if (author.slug !== editorialTeamSlug) return author;
+  if (!editorialTeamSlugs.has(author.slug)) return author;
   return { ...author, name: editorialTeamName, jobTitle: editorialTeamTitle, bio: editorialTeamBio };
 }
 
@@ -267,7 +267,7 @@ export default async function AuthorPage({ params }: Props) {
   const posts = await getPostsByAuthor(author.slug);
   const displayAuthor = authorDisplayProfile(author);
   const publicLinks = [author.website, ...author.socialLinks].filter((url): url is string => Boolean(url));
-  const isEditorialTeam = author.slug === editorialTeamSlug;
+  const isEditorialTeam = editorialTeamSlugs.has(author.slug);
 
   return <>
     <SiteHeader />
