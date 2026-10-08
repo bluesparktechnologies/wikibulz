@@ -160,7 +160,6 @@ function CategoryStandard({ title, children }: { title: string; children: ReactN
 function EditorialResearchTeamProfile() {
   return <section className="prose-content mt-12 max-w-3xl">
     <p>The Wikibulz Editorial Research Team researches local businesses, professionals, and services to help readers compare options with greater clarity and confidence.</p>
-    <p>We cover healthcare, education, professional services, home services, food, lifestyle, travel, and other city-based categories.</p>
     <p>Our core principle is simple: a strong ranking should make the differences between options clearer, rather than simply naming a winner.</p>
     <p>We evaluate the evidence that actually matters for the decision, explain meaningful differences, and clearly state limitations when information is incomplete.</p>
 
@@ -282,7 +281,8 @@ export default async function AuthorPage({ params }: Props) {
           <p className="mt-2 text-lg font-semibold text-[var(--brand)]">{[displayAuthor.jobTitle, displayAuthor.organization].filter(Boolean).join(" · ")}</p>
           {author.location ? <p className="mt-1 text-sm text-[var(--muted)]">{author.location}</p> : null}
           <p className="mt-5 max-w-3xl leading-7 text-[var(--muted)]">{displayAuthor.bio}</p>
-          {publicLinks.length ? <div className="mt-5 flex flex-wrap gap-3">
+          {isEditorialTeam ? <p className="mt-3 max-w-3xl leading-7 text-[var(--muted)]">We cover healthcare, education, professional services, home services, food, lifestyle, travel, and other city-based categories.</p> : null}
+          {!isEditorialTeam && publicLinks.length ? <div className="mt-5 flex flex-wrap gap-3">
             {publicLinks.map((url) => <Link key={url} href={url} rel="nofollow noopener noreferrer" target="_blank" className="rounded-full border border-[#cfe0d8] px-4 py-2 text-sm font-bold text-[var(--brand)]">Profile link</Link>)}
           </div> : null}
         </div>
