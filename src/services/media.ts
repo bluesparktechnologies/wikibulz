@@ -55,9 +55,7 @@ export async function readLocalUpload(key: string) {
   } catch (error) {
     const db = await connectMongo();
     if (!db) throw error;
-    const localUrl = `/uploads/${key}`;
-    const publicUrl = publicLocalUrl(key);
-    const doc = await MediaAssetModel.findOne({ url: { $in: Array.from(new Set([localUrl, publicUrl])) } }).select("data").lean<{ data?: Buffer | mongo.Binary }>();
+    const doc = await MediaAssetModel.findOne({ url: { $in: localUploadLookupUrls(key) } }).select("data").lean<{ data?: Buffer | mongo.Binary }>();
     // Lean queries return BSON Binary rather than a Node Buffer.
     if (doc?.data) return Buffer.isBuffer(doc.data) ? doc.data : Buffer.from(doc.data.value());
     throw error;
@@ -77,10 +75,8 @@ export async function localUploadExists(key: string) {
   } catch {
     const db = await connectMongo();
     if (!db) return false;
-    const localUrl = `/uploads/${key}`;
-    const publicUrl = publicLocalUrl(key);
     const count = await MediaAssetModel.countDocuments({
-      url: { $in: Array.from(new Set([localUrl, publicUrl])) },
+      url: { $in: localUploadLookupUrls(key) },
       data: { $exists: true, $ne: null },
     });
     return count > 0;
@@ -93,9 +89,13 @@ export async function localUploadUrlExists(url: string) {
 }
 
 function publicLocalUrl(key: string) {
-  const publicBase = env.MEDIA_PUBLIC_URL?.trim();
-  if (publicBase) return `${publicBase.replace(/\/$/, "")}/${key}`;
   return `/uploads/${key}`;
+}
+
+function localUploadLookupUrls(key: string) {
+  // Keep older database uploads readable after switching to same-origin URLs.
+  const legacyBase = env.MEDIA_PUBLIC_URL?.trim().replace(/\/$/, "");
+  return Array.from(new Set([publicLocalUrl(key), ...(legacyBase ? [`${legacyBase}/${key}`] : [])]));
 }
 
 export const localStorageAdapter: StorageAdapter = {
