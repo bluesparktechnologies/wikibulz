@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
+import { mongo } from "mongoose";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { connectMongo } from "@/lib/db/mongoose";
 import { env } from "@/lib/validation/env";
@@ -56,8 +57,9 @@ export async function readLocalUpload(key: string) {
     if (!db) throw error;
     const localUrl = `/uploads/${key}`;
     const publicUrl = publicLocalUrl(key);
-    const doc = await MediaAssetModel.findOne({ url: { $in: Array.from(new Set([localUrl, publicUrl])) } }).select("data").lean<{ data?: Buffer }>();
-    if (doc?.data) return Buffer.from(doc.data);
+    const doc = await MediaAssetModel.findOne({ url: { $in: Array.from(new Set([localUrl, publicUrl])) } }).select("data").lean<{ data?: Buffer | mongo.Binary }>();
+    // Lean queries return BSON Binary rather than a Node Buffer.
+    if (doc?.data) return Buffer.isBuffer(doc.data) ? doc.data : Buffer.from(doc.data.value());
     throw error;
   }
 }
