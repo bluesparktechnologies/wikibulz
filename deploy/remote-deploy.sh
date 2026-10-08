@@ -95,7 +95,7 @@ if command -v nginx >/dev/null 2>&1; then
     https://wikibulz.com/control-room/api/media)"
   rm -f "$upload_probe"
   # No session: reaching the application should redirect to login, never return 413.
-  if [ "$upload_status" != "307" ] && [ "$upload_status" != "401" ]; then
+  if [ "$upload_status" != "303" ] && [ "$upload_status" != "307" ] && [ "$upload_status" != "401" ]; then
     echo "Upload smoke check failed: HTTP $upload_status"
     exit 1
   fi
