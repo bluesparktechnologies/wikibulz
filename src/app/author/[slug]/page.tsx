@@ -19,10 +19,11 @@ const editorialTeamSlugs = new Set(["wikibulz-research-team", "wikibulz-editoria
 const editorialTeamName = "Wikibulz Editorial Research Team";
 const editorialTeamTitle = "Local Business Research & Comparison Team";
 const editorialTeamBio = "The Wikibulz Editorial Research Team researches local businesses, professionals, and services to help readers compare options with greater clarity and confidence.";
+const editorialTeamExpertise = ["Local business research", "Service comparison guides", "Editorial methodology", "Source review"];
 
 function authorDisplayProfile(author: Author): Author {
   if (!editorialTeamSlugs.has(author.slug)) return author;
-  return { ...author, name: editorialTeamName, jobTitle: editorialTeamTitle, bio: editorialTeamBio };
+  return { ...author, name: editorialTeamName, jobTitle: editorialTeamTitle, bio: editorialTeamBio, expertise: editorialTeamExpertise, credentials: [] };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -288,8 +289,8 @@ export default async function AuthorPage({ params }: Props) {
       </section>
 
       <section className="mt-8 grid gap-5 md:grid-cols-2">
-        <DetailList title="Expertise" items={author.expertise} />
-        <DetailList title="Credentials" items={author.credentials} />
+        <DetailList title="Expertise" items={displayAuthor.expertise} />
+        <DetailList title="Credentials" items={displayAuthor.credentials} />
         <DetailList title="Education" items={author.education} />
         <DetailList title="Recognition" items={author.awards} />
       </section>
