@@ -8,7 +8,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ key
   const key = (await params).key.join("/");
   try {
     const file = await readLocalUpload(key);
-    return new Response(file, {
+    return new Response(new Uint8Array(file), {
       headers: {
         "Content-Type": "image/webp",
         "Cache-Control": "public, max-age=31536000, immutable",
