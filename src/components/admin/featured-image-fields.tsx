@@ -13,13 +13,14 @@ function getAdminMediaEndpoint() {
 }
 
 async function readUploadResponse(response: Response) {
+  if (response.status === 413) return { error: "The server rejected this image because its upload limit is too small. Please contact the administrator." };
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) return response.json();
   const text = await response.text().catch(() => "");
   return { error: text ? text.slice(0, 180) : `Image upload failed (${response.status}).` };
 }
 
-export function FeaturedImageFields({ currentImage, media }: { currentImage?: MediaAsset; media: AdminMedia[] }) {
+export function FeaturedImageFields({ currentImage, media, onUploadBlocked }: { currentImage?: MediaAsset; media: AdminMedia[]; onUploadBlocked?: (blocked: boolean) => void }) {
   const [url, setUrl] = useState(currentImage?.url ?? "");
   const [alt, setAlt] = useState(currentImage?.alt ?? "");
   const [width, setWidth] = useState(currentImage?.width ?? 1600);
@@ -34,6 +35,8 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
   }, [previewUrl]);
 
   function chooseMedia(value: string) {
+    onUploadBlocked?.(false);
+    setUploadMessage("");
     const item = media.find((asset) => asset.url === value);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl("");
@@ -49,9 +52,9 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
     setPreviewUrl(file ? URL.createObjectURL(file) : "");
     setBroken(false);
     setUploadMessage("");
-    if (file) setUrl("");
     if (file && !alt) setAlt(file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "));
     if (!file) return;
+    onUploadBlocked?.(true);
     setUploading(true);
     try {
       const formData = new FormData();
@@ -68,6 +71,8 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
       setWidth(payload.width || 1600);
       setHeight(payload.height || 900);
       if (payload.alt) setAlt(payload.alt);
+      setPreviewUrl("");
+      onUploadBlocked?.(false);
       setUploadMessage("Image uploaded. Save post to apply it.");
     } catch (error) {
       setUploadMessage(error instanceof Error ? error.message : "Image upload failed.");
@@ -82,14 +87,14 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 rounded-lg border border-[var(--line)] bg-[#f7faf8] p-4">
       <div className="grid min-w-0 gap-2 text-sm font-bold">
         Upload New Featured Image
-        <input type="file" accept="image/*" onChange={(event) => { void chooseFile(event.target.files?.[0]); }} className="min-w-0 w-full rounded border border-[var(--line)] bg-white px-3 py-2" />
+        <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={uploading} onChange={(event) => { void chooseFile(event.target.files?.[0]); }} className="min-w-0 w-full rounded border border-[var(--line)] bg-white px-3 py-2" />
         {uploading ? <span className="text-xs font-semibold text-[var(--muted)]">Uploading image...</span> : null}
-        {uploadMessage ? <span className={`text-xs font-semibold ${url ? "text-green-700" : "text-red-700"}`}>{uploadMessage}</span> : null}
+        {uploadMessage ? <span role="status" className={`text-xs font-semibold ${uploadMessage.startsWith("Image uploaded.") ? "text-green-700" : "text-red-700"}`}>{uploadMessage}</span> : null}
       </div>
       {media.length > 0 ? (
         <label className="grid min-w-0 gap-2 text-sm font-bold">
           Or Choose From Media Library
-          <select value={url} onChange={(event) => chooseMedia(event.target.value)} className="min-w-0 w-full rounded border border-[var(--line)] bg-white px-3 py-2">
+          <select value={url} disabled={uploading} onChange={(event) => chooseMedia(event.target.value)} className="min-w-0 w-full rounded border border-[var(--line)] bg-white px-3 py-2">
             <option value="">Select image</option>
             {media.map((asset) => <option key={asset.id} value={asset.url}>{asset.alt || asset.url}</option>)}
           </select>
@@ -98,8 +103,7 @@ export function FeaturedImageFields({ currentImage, media }: { currentImage?: Me
       <div className="grid min-w-0 gap-5 lg:grid-cols-2">
         <label className="grid min-w-0 gap-2 text-sm font-bold">
           Featured Image URL
-          <input name="featuredImageUrl" value={url} onChange={(event) => { setBroken(false); setUrl(event.target.value); }} className="min-w-0 w-full rounded border border-[var(--line)] bg-white px-3 py-2" />
-          {previewUrl && !url ? <span className="text-xs font-semibold text-[var(--muted)]">New image selected. Uploading will generate its URL.</span> : null}
+          <input name="featuredImageUrl" value={url} readOnly={uploading} onChange={(event) => { setBroken(false); setPreviewUrl(""); setUploadMessage(""); onUploadBlocked?.(false); setUrl(event.target.value); }} className="min-w-0 w-full rounded border border-[var(--line)] bg-white px-3 py-2" />
         </label>
         <label className="grid min-w-0 gap-2 text-sm font-bold">
           Featured Image Alt

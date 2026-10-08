@@ -121,6 +121,7 @@ function EntityCreator({ kind, categories = [], onCancel, onCreated }: EntityCre
 
 export function PostEditor({ authors, categories, countries, states, cities, tags, media, post }: { authors: Author[]; categories: Category[]; countries: Country[]; states: StateRegion[]; cities: City[]; tags: Tag[]; media: AdminMedia[]; post?: Post }) {
   const [state, action, pending] = useActionState(savePostAction, initialState);
+  const [imageUploadBlocked, setImageUploadBlocked] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [slugTouched, setSlugTouched] = useState(Boolean(post?.slug));
   const [availableAuthors, setAvailableAuthors] = useState<Array<Pick<Author, "id" | "name" | "slug">>>(authors);
@@ -249,7 +250,7 @@ export function PostEditor({ authors, categories, countries, states, cities, tag
   }
 
   return (
-    <form ref={formRef} action={action} onInput={handleDraftInput} onChange={handleDraftInput} className="mt-8 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 rounded-lg border border-[var(--line)] bg-white p-5 [&_.grid]:min-w-0">
+    <form ref={formRef} action={action} onSubmit={(event) => { if (imageUploadBlocked) event.preventDefault(); }} onInput={handleDraftInput} onChange={handleDraftInput} className="mt-8 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 rounded-lg border border-[var(--line)] bg-white p-5 [&_.grid]:min-w-0">
       {post ? <input type="hidden" name="id" value={post.id} /> : null}
       <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 rounded-lg border border-[var(--line)] bg-[#f7faf8] p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -405,7 +406,7 @@ export function PostEditor({ authors, categories, countries, states, cities, tag
         </div>
       </section>
 
-      <FeaturedImageFields currentImage={post?.featuredImage} media={media} />
+      <FeaturedImageFields currentImage={post?.featuredImage} media={media} onUploadBlocked={setImageUploadBlocked} />
 
       <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 rounded-lg border border-[var(--line)] bg-[#f7faf8] p-4">
         <h2 className="text-sm font-black uppercase tracking-wide text-[var(--accent)]">Tags</h2>
@@ -506,7 +507,8 @@ export function PostEditor({ authors, categories, countries, states, cities, tag
 
       {formState.errors.title ? <p className="text-sm text-red-700">Title must be at least five characters.</p> : null}
       {state.message ? <p className={state.ok ? "text-sm text-green-700" : "text-sm text-red-700"}>{state.message}</p> : null}
-      <button disabled={pending} className="w-fit rounded-md bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white disabled:opacity-60">
+      {imageUploadBlocked ? <p role="status" className="text-sm font-semibold text-red-700">Finish the image upload or choose a saved image before saving this post.</p> : null}
+      <button disabled={pending || imageUploadBlocked} className="w-fit rounded-md bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white disabled:opacity-60">
         {pending ? "Saving..." : post ? "Update Post" : "Save Post"}
       </button>
     </form>

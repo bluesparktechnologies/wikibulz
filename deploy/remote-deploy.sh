@@ -63,5 +63,43 @@ if [ "$healthy" != true ]; then
   exit 1
 fi
 
+# Nginx otherwise rejects images above its default 1MB before Next.js sees them.
+if command -v nginx >/dev/null 2>&1; then
+  nginx_admin=()
+  if [ "$(id -u)" -ne 0 ]; then
+    nginx_admin=(sudo -n)
+  fi
+  upload_config="/etc/nginx/conf.d/wikibulz-upload-limit.conf"
+  previous_config="$(mktemp)"
+  had_upload_config=false
+  if "${nginx_admin[@]}" test -f "$upload_config"; then
+    had_upload_config=true
+    "${nginx_admin[@]}" cp "$upload_config" "$previous_config"
+  fi
+  printf 'client_max_body_size 12m;\n' | "${nginx_admin[@]}" tee "$upload_config" >/dev/null
+  if ! "${nginx_admin[@]}" nginx -t; then
+    if [ "$had_upload_config" = true ]; then
+      "${nginx_admin[@]}" cp "$previous_config" "$upload_config"
+    else
+      "${nginx_admin[@]}" rm -f "$upload_config"
+    fi
+    rm -f "$previous_config"
+    exit 1
+  fi
+  "${nginx_admin[@]}" systemctl reload nginx
+  rm -f "$previous_config"
+  upload_probe="$(mktemp)"
+  head -c 2097152 /dev/zero > "$upload_probe"
+  upload_status="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' \
+    -H 'Accept: application/json' -F "file=@$upload_probe" \
+    https://wikibulz.com/control-room/api/media)"
+  rm -f "$upload_probe"
+  # No session: reaching the application should redirect to login, never return 413.
+  if [ "$upload_status" != "307" ] && [ "$upload_status" != "401" ]; then
+    echo "Upload smoke check failed: HTTP $upload_status"
+    exit 1
+  fi
+fi
+
 rm -f "$archive"
 echo "Deployment healthy: $release_id"
