@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
 import { deleteAuthorAction, deleteCategoryAction, saveAuthorAction, saveCategoryAction, saveCityAction, saveCountryAction, savePageAction, saveStateAction, saveTagAction, saveUserAction, type AdminActionState } from "@/app/admin/actions";
 import type { Author, Category, City, Country, StateRegion } from "@/types/content";
 
@@ -12,6 +13,21 @@ function Message({ state }: { state: AdminActionState }) {
 
 function Submit({ pending, label }: { pending: boolean; label: string }) {
   return <button disabled={pending} className="w-fit rounded-md bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{pending ? "Saving..." : label}</button>;
+}
+
+function AuthorLinksFields({ initialLinks }: { initialLinks: string[] }) {
+  const [links, setLinks] = useState(() => (initialLinks.length ? initialLinks : [""]).map((url, id) => ({ id, url })));
+  const nextId = useRef(links.length);
+
+  return <div className="grid gap-3">
+    {links.map((link, index) => <div key={link.id} className="flex min-w-0 items-end gap-2">
+      <label className="grid min-w-0 flex-1 gap-1 text-sm font-bold">Profile or proof link {index + 1}
+        <input name="socialLinks" type="url" value={link.url} onChange={(event) => setLinks((items) => items.map((item) => item.id === link.id ? { ...item, url: event.target.value } : item))} placeholder="https://linkedin.com/in/author" className="min-w-0 rounded border border-[var(--line)] px-3 py-2 font-normal" />
+      </label>
+      <button type="button" title="Remove link" aria-label={`Remove link ${index + 1}`} onClick={() => setLinks((items) => items.filter((item) => item.id !== link.id))} className="grid size-10 shrink-0 place-items-center rounded border border-[var(--line)] text-[var(--muted)] hover:border-red-300 hover:text-red-700"><Trash2 size={16} /></button>
+    </div>)}
+    <button type="button" disabled={links.length >= 12} onClick={() => setLinks((items) => [...items, { id: nextId.current++, url: "" }])} className="flex w-fit items-center gap-2 rounded border border-[var(--line)] px-3 py-2 text-sm font-bold text-[var(--brand)] hover:border-[var(--brand)] disabled:opacity-50"><Plus size={16} />Add link</button>
+  </div>;
 }
 
 export function CategoryForm({ category, categoryId, categories }: { category?: Category; categoryId?: string; categories: Category[] }) {
@@ -90,10 +106,8 @@ export function AuthorForm({ author }: { author?: Author }) {
         <h2 className="text-lg font-black">Public links</h2>
         <p className="text-sm text-[var(--muted)]">Add profile URLs that verify the author. Leave blank when not available.</p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-1 text-sm font-bold">Website<input name="website" defaultValue={author?.website} placeholder="https://..." className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
-        <label className="grid gap-1 text-sm font-bold">Social / proof links<input name="socialLinks" defaultValue={author?.socialLinks.join(", ")} placeholder="LinkedIn URL, X URL, portfolio URL" className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
-      </div>
+      <label className="grid gap-1 text-sm font-bold">Website<input name="website" type="url" defaultValue={author?.website} placeholder="https://..." className="rounded border border-[var(--line)] px-3 py-2 font-normal"/></label>
+      <AuthorLinksFields initialLinks={author?.socialLinks ?? []} />
     </section>
 
     <Message state={state}/>

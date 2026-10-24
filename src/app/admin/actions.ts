@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isValidObjectId } from "mongoose";
 import { z } from "zod";
 import { findRootSlugConflict } from "@/lib/admin/root-slug-conflicts";
+import { parseAuthorLinks } from "@/lib/admin/author-links";
 import { requireRole, requireUser } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/session";
 import { connectMongo } from "@/lib/db/mongoose";
@@ -223,10 +224,17 @@ export async function saveAuthorAction(_state: AdminActionState, formData: FormD
   try {
     await ensureDb();
     const authorId = val(formData, "authorId");
+    if (authorId && !isValidObjectId(authorId)) return initialError("Select a valid author to edit.");
     const name = val(formData, "name");
     const slug = normalizeSlug(val(formData, "slug") || name);
     const existing = authorId ? await AuthorModel.findById(authorId).lean() : await AuthorModel.findOne({ slug }).lean();
+    if (authorId && !existing) return initialError("Author not found. Refresh the authors page and try again.");
     if (formData.get("createOnly") === "true" && existing) return initialError("An author with this slug already exists.");
+    const slugOwner = await AuthorModel.findOne({ slug, ...(authorId ? { _id: { $ne: authorId } } : {}) }).select("_id").lean();
+    if (slugOwner && (authorId || formData.get("createOnly") === "true")) return initialError("Another author already uses this profile slug.");
+    const website = val(formData, "website").trim();
+    const validatedWebsite = website ? parseAuthorLinks([website])[0] : "";
+    const socialLinks = parseAuthorLinks(formData.getAll("socialLinks").map((value) => value.toString()));
     const uploadedAvatar = await storeAuthorAvatar(formData, `${name} profile photo`);
     const avatar = authorAvatarFromForm(formData, uploadedAvatar, `${name} profile photo`);
     const author = await AuthorModel.findOneAndUpdate(
@@ -244,17 +252,29 @@ export async function saveAuthorAction(_state: AdminActionState, formData: FormD
         credentials: csv(val(formData, "credentials")),
         education: csv(val(formData, "education")),
         awards: csv(val(formData, "awards")),
-        socialLinks: csv(val(formData, "socialLinks")),
-        website: val(formData, "website"),
+        socialLinks,
+        website: validatedWebsite,
         status: val(formData, "status") || "active",
       },
-      { upsert: true, new: true, runValidators: true },
+      { upsert: !authorId, new: true, runValidators: true },
     ).lean();
+    if (!author) return initialError("Author not found. Refresh the authors page and try again.");
+    if (existing?.slug && existing.slug !== slug) {
+      const sourcePath = `/author/${existing.slug}`;
+      await RedirectModel.updateOne(
+        { sourcePath },
+        { sourcePath, destinationPath: `/author/${slug}`, statusCode: 301, active: true },
+        { upsert: true },
+      );
+    }
     revalidatePath("/admin/authors");
+    const adminPrefix = "/" + (process.env.ADMIN_PATH_SECRET?.trim().replace(/^\/+|\/+$/g, "") || "control-room");
+    revalidatePath(`${adminPrefix}/authors`);
     revalidatePath("/admin/posts");
     revalidatePath("/admin/posts/new");
     revalidatePath(`/author/${slug}`);
     if (existing?.slug && existing.slug !== slug) revalidatePath(`/author/${existing.slug}`);
+    revalidatePath("/sitemap-authors.xml");
     return { ok: true, message: "Author saved.", entity: author ? { id: String(author._id), name: author.name, slug: author.slug } : undefined };
   } catch (error) {
     return initialError(error instanceof Error ? error.message : "Author save failed.");

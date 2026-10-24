@@ -54,10 +54,10 @@ export default async function AuthorsAdminPage({ searchParams }: { searchParams?
       {editing ? <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-2xl font-black">Edit Author</h2>
-          <Link href="/admin/authors" className="text-sm font-bold text-[var(--brand)]">Cancel</Link>
+          <form method="GET" action="/admin/authors"><button type="submit" className="text-sm font-bold text-[var(--brand)]">Cancel</button></form>
         </div>
-        <AuthorForm author={editing}/>
-      </div> : <AuthorForm />}
+        <AuthorForm key={editing.id} author={editing}/>
+      </div> : <AuthorForm key="new-author" />}
     </div>
 
     <div className="mt-8 overflow-x-auto rounded-lg border border-[var(--line)] bg-white">
@@ -102,7 +102,7 @@ export default async function AuthorsAdminPage({ searchParams }: { searchParams?
               <td className="py-4">{row.status}</td>
               <td className="py-4">
                 <div className="flex gap-2">
-                  <Link href={`/admin/authors?edit=${row.id}`} className="rounded border border-[var(--line)] px-3 py-1 text-xs font-bold">Edit</Link>
+                  <form method="GET" action="/admin/authors"><button type="submit" name="edit" value={row.id} className="rounded border border-[var(--line)] px-3 py-1 text-xs font-bold">Edit</button></form>
                   <AuthorDeleteForm authorId={row.id} name={row.name}/>
                 </div>
               </td>
