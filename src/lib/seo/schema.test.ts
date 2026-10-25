@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { posts } from "@/lib/content/sample-data";
 import { seoConfig } from "@/config/seo";
-import { articleSchema, authorProfileSchema, breadcrumbSchema, faqSchema } from "./schema";
+import { articleSchema, authorProfileSchema, breadcrumbSchema, faqSchema, organizationSchema, websiteSchema } from "./schema";
 import { resolvePostCanonical } from "./url";
 describe("JSON-LD generation", () => {
+  it("uses the documented site launch year only for the website and publisher", () => {
+    const organization = organizationSchema();
+    const website = websiteSchema();
+    expect(organization.foundingDate).toBe("2017");
+    expect(website.dateCreated).toBe("2017");
+    expect(website.publisher["@id"]).toBe(organization["@id"]);
+    expect(articleSchema(posts[0]).datePublished).toBe(posts[0].publishedAt);
+  });
   it("serializes article schema without undefined values", () => { const json = JSON.stringify(articleSchema(posts[0])); expect(json).toContain("BlogPosting"); expect(json).not.toContain("undefined"); });
   it("uses stable organization identity and the resolved canonical URL", () => { const schema = articleSchema({ ...posts[0], canonicalUrl: "/best-dentists-in-lucknow/" }); expect(schema.publisher["@id"]).toContain("#organization"); expect(schema.url).toContain("/best-dentists-in-lucknow"); expect(schema.mainEntityOfPage["@id"]).toBe(schema.url); });
   it("falls back from a homepage canonical to the article URL", () => {

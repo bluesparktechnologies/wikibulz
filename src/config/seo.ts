@@ -9,6 +9,7 @@ export const seoConfig = {
   defaultDescription: "Wikibulz publishes researched local rankings and city guides for healthcare, education, business services, home services, food, real estate, and more.",
   defaultOgImage: "/logo-wikibulz.png",
   timezone: "UTC",
+  siteFoundedYear: "2017",
   defaultTagIndexing: process.env.DEFAULT_TAG_INDEXING === "index" ? "index" : "noindex",
   organization: { name: siteName, logo: "/logo-wikibulz.png", sameAs: [] },
   robots: { index: true, follow: true },

@@ -29,8 +29,8 @@ function personEntity(author: Author) {
     mainEntityOfPage: { "@type": "ProfilePage", "@id": authorUrl },
   });
 }
-export function organizationSchema() { return compact({ "@context": "https://schema.org", "@type": "Organization", "@id": organizationId(), name: seoConfig.organization.name, url: seoConfig.siteUrl, logo: absoluteUrl(seoConfig.organization.logo), sameAs: seoConfig.organization.sameAs }); }
-export function websiteSchema() { return { "@context": "https://schema.org", "@type": "WebSite", "@id": websiteId(), name: seoConfig.siteName, url: seoConfig.siteUrl, publisher: { "@id": organizationId() }, potentialAction: { "@type": "SearchAction", target: seoConfig.siteUrl + "/search?q={search_term_string}", "query-input": "required name=search_term_string" } }; }
+export function organizationSchema() { return compact({ "@context": "https://schema.org", "@type": "Organization", "@id": organizationId(), name: seoConfig.organization.name, url: seoConfig.siteUrl, foundingDate: seoConfig.siteFoundedYear, logo: absoluteUrl(seoConfig.organization.logo), sameAs: seoConfig.organization.sameAs }); }
+export function websiteSchema() { return { "@context": "https://schema.org", "@type": "WebSite", "@id": websiteId(), name: seoConfig.siteName, url: seoConfig.siteUrl, dateCreated: seoConfig.siteFoundedYear, publisher: { "@id": organizationId() }, potentialAction: { "@type": "SearchAction", target: seoConfig.siteUrl + "/search?q={search_term_string}", "query-input": "required name=search_term_string" } }; }
 function topicEntity(name: string, url?: string, type: "Thing" | "Place" = "Thing") { return compact({ "@type": type, name, url: url ? absoluteUrl(url) : undefined }); }
 function articleTopics(post: Post) {
   return [
