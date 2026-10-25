@@ -4,6 +4,8 @@ import { Footer, SiteHeader } from "@/components/blog/site-shell";
 import { generateStaticMetadata } from "@/lib/seo/metadata";
 import type { ReactNode } from "react";
 import { seoConfig } from "@/config/seo";
+import { JsonLd } from "@/components/seo/json-ld";
+import { aboutPageSchema } from "@/lib/seo/schema";
 
 export const metadata = generateStaticMetadata({
   title: "About Wikibulz",
@@ -154,13 +156,13 @@ function CoverageBlock({ title, children }: { title: string; children: ReactNode
 }
 
 export default function AboutPage() {
-  return <><SiteHeader /><main>
+  return <><SiteHeader /><JsonLd data={aboutPageSchema()} /><main>
     <section className="border-b border-[var(--line)] bg-white">
       <div className="mx-auto max-w-7xl px-5 py-16 md:py-24">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">About Wikibulz</p>
         <h1 className="mt-4 max-w-4xl text-5xl font-black leading-[1.04] md:text-7xl">Local discovery should be easier to understand.</h1>
         <p className="mt-7 max-w-2xl text-xl leading-9 text-[var(--muted)]">Wikibulz is a local discovery and comparison platform built to help people make better-informed choices.</p>
-        <p className="mt-3 text-sm text-[var(--muted)]">Publishing since {seoConfig.siteFoundedYear}. <a href="https://web.archive.org/web/20171006155436/https://wikibulz.com/property-costs-decline-throughout-top-8-cities-in-2016/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">View a 2017 archive</a>.</p>
+        <p className="mt-3 text-sm text-[var(--muted)]">Publishing since {seoConfig.siteFoundedYear}. See our <a href={seoConfig.siteHistory.homepageArchive} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">2017 homepage snapshot</a> and an <a href={seoConfig.siteHistory.articleArchive} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">archived article on property costs across eight cities</a>.</p>
       </div>
     </section>
 

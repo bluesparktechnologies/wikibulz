@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { posts } from "@/lib/content/sample-data";
 import { seoConfig } from "@/config/seo";
-import { articleSchema, authorProfileSchema, breadcrumbSchema, faqSchema, organizationSchema, websiteSchema } from "./schema";
+import { aboutPageSchema, articleSchema, authorProfileSchema, breadcrumbSchema, faqSchema, organizationSchema, websiteSchema } from "./schema";
 import { resolvePostCanonical } from "./url";
 describe("JSON-LD generation", () => {
   it("uses the documented site launch year only for the website and publisher", () => {
@@ -11,6 +11,14 @@ describe("JSON-LD generation", () => {
     expect(website.dateCreated).toBe("2017");
     expect(website.publisher["@id"]).toBe(organization["@id"]);
     expect(articleSchema(posts[0]).datePublished).toBe(posts[0].publishedAt);
+  });
+  it("connects visible 2017 history to the archived website and cited article", () => {
+    const website = websiteSchema();
+    const about = aboutPageSchema();
+    expect(website.archivedAt).toBe(seoConfig.siteHistory.homepageArchive);
+    expect(about.mainEntity["@id"]).toBe(organizationSchema()["@id"]);
+    expect(about.citation.url).toBe(seoConfig.siteHistory.articleArchive);
+    expect(organizationSchema().sameAs).not.toContain(seoConfig.siteHistory.articleArchive);
   });
   it("serializes article schema without undefined values", () => { const json = JSON.stringify(articleSchema(posts[0])); expect(json).toContain("BlogPosting"); expect(json).not.toContain("undefined"); });
   it("uses stable organization identity and the resolved canonical URL", () => { const schema = articleSchema({ ...posts[0], canonicalUrl: "/best-dentists-in-lucknow/" }); expect(schema.publisher["@id"]).toContain("#organization"); expect(schema.url).toContain("/best-dentists-in-lucknow"); expect(schema.mainEntityOfPage["@id"]).toBe(schema.url); });
