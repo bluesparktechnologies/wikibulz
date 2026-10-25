@@ -85,4 +85,13 @@ export function articleSchema(post: Post) {
 export function breadcrumbSchema(items: Array<{ name: string; url: string }>) { return { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: items.map((item, index) => ({ "@type": "ListItem", position: index + 1, name: item.name, item: absoluteUrl(item.url) })) }; }
 export function itemListSchema(items: Array<{ name: string; url: string }>, name: string) { return { "@context": "https://schema.org", "@type": "ItemList", name, itemListElement: items.map((item, index) => ({ "@type": "ListItem", position: index + 1, name: item.name, url: absoluteUrl(item.url) })) }; }
 export function faqSchema(post: Post) { return post.faqs.length ? { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: post.faqs.map((faq) => ({ "@type": "Question", name: faq.question, acceptedAnswer: { "@type": "Answer", text: faq.answer } })) } : null; }
-export function personSchema(author: Author) { return compact({ "@context": "https://schema.org", ...personEntity(author) }); }
+export function authorProfileSchema(author: Author) {
+  const authorUrl = absoluteUrl("/author/" + author.slug);
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "@id": authorUrl,
+    url: authorUrl,
+    mainEntity: personEntity(author),
+  };
+}

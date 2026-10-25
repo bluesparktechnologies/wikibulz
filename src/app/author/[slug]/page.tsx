@@ -7,7 +7,7 @@ import { Footer, SiteHeader } from "@/components/blog/site-shell";
 import { PostCard } from "@/components/blog/post-card";
 import { JsonLd } from "@/components/seo/json-ld";
 import { generateAuthorMetadata } from "@/lib/seo/metadata";
-import { personSchema } from "@/lib/seo/schema";
+import { authorProfileSchema } from "@/lib/seo/schema";
 import { normalizePath } from "@/lib/seo/url";
 import { getAuthorBySlug, getPostsByAuthor, getRedirects } from "@/repositories/content.repository";
 import { followRedirect } from "@/services/redirects";
@@ -274,7 +274,7 @@ export default async function AuthorPage({ params }: Props) {
 
   return <>
     <SiteHeader />
-    <JsonLd data={personSchema(author)} />
+    <JsonLd data={authorProfileSchema(author)} />
     <main className="mx-auto max-w-7xl px-5 py-10">
       <section className="grid gap-8 rounded-lg border border-[var(--line)] bg-white p-6 shadow-sm md:grid-cols-[180px_1fr]">
         {author.avatar ? <Image src={author.avatar.url} alt={author.avatar.alt} width={author.avatar.width} height={author.avatar.height} className="size-44 rounded-lg object-cover" priority /> : <div className="grid size-44 place-items-center rounded-lg bg-[#e7f1ec] text-6xl font-black text-[var(--brand)]">{author.name.slice(0, 1)}</div>}

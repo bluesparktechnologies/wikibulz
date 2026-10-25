@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { posts } from "@/lib/content/sample-data";
 import { seoConfig } from "@/config/seo";
-import { articleSchema, breadcrumbSchema, faqSchema } from "./schema";
+import { articleSchema, authorProfileSchema, breadcrumbSchema, faqSchema } from "./schema";
 import { resolvePostCanonical } from "./url";
 describe("JSON-LD generation", () => {
   it("serializes article schema without undefined values", () => { const json = JSON.stringify(articleSchema(posts[0])); expect(json).toContain("BlogPosting"); expect(json).not.toContain("undefined"); });
@@ -22,4 +22,13 @@ describe("JSON-LD generation", () => {
     expect(JSON.stringify(schema.spatialCoverage)).toContain("Lucknow");
   });
   it("only emits FAQ schema when FAQs exist", () => { expect(faqSchema(posts[0])).not.toBeNull(); expect(faqSchema({ ...posts[1], faqs: [] })).toBeNull(); });
+  it("connects an author profile and article to one Person ID with verified profile links", () => {
+    const author = { ...posts[0].author, slug: "sam-wilson", socialLinks: ["https://scholar.google.com/citations?user=-Ad2n68AAAAJ&hl=en&oi=sra"] };
+    const profile = authorProfileSchema(author);
+    const personId = `${seoConfig.siteUrl}/author/sam-wilson#person`;
+    expect(profile["@id"]).toBe(`${seoConfig.siteUrl}/author/sam-wilson`);
+    expect(profile.mainEntity["@id"]).toBe(personId);
+    expect(profile.mainEntity.sameAs).toEqual(author.socialLinks);
+    expect(articleSchema({ ...posts[0], author }).author["@id"]).toBe(personId);
+  });
 });
