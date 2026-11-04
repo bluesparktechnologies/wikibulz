@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 export const metadata = generateStaticMetadata({
   title: "How We Rank",
-  description: "How Wikibulz evaluates local businesses, professionals, services, ranking signals, editorial scores, updates, corrections, and commercial independence.",
+  description: "Learn how Wikibulz compares local businesses and professionals using category-specific evidence, public information, editorial review, and independent ranking criteria.",
   path: "/how-we-rank",
 });
 
@@ -215,17 +215,17 @@ export default function HowWeRankPage() {
   return <><SiteHeader /><main className="prose-content mx-auto max-w-3xl px-5 py-10">
     <p className="text-sm font-bold uppercase tracking-wide text-[var(--accent)]">Editorial methodology</p>
     <h1>How We Rank</h1>
-    <p>Wikibulz rankings are editorial guides designed to help readers compare local businesses, professionals, and services more confidently.</p>
-    <p>Our goal is not to declare a universal best based on one number.</p>
-    <p>Instead, we look at multiple signals, consider the context of the category, and explain the factors that matter most for the decision.</p>
+    <p>Wikibulz rankings are editorial guides that help readers compare local businesses, professionals, and services and build a useful shortlist.</p>
+    <p>We do not try to declare that one number identifies the best choice for everyone.</p>
+    <p>We consider multiple factors in the context of each category and explain why those factors may matter to a reader&apos;s decision.</p>
     <p>A business with the highest star rating is not automatically ranked first. A large review count, famous brand name, or paid partnership does not guarantee a top position either.</p>
-    <p>We aim to build rankings that are useful, transparent, evidence-aware, and independent.</p>
+    <p>We aim to provide useful, transparent, evidence-based, independent rankings. Fame or a paid partnership does not influence an editorial position.</p>
 
     <h2>Our Ranking Philosophy</h2>
     <p>Every category is different.</p>
     <p>The factors that matter for choosing a dentist are not identical to the factors that matter for choosing a restaurant, coaching institute, digital marketing agency, or interior designer.</p>
     <p>That is why Wikibulz does not use one rigid formula for every ranking. Instead, our editors evaluate a combination of general trust signals and category-specific factors.</p>
-    <p>The most important question is: which factors would genuinely help a reader make a better decision in this category?</p>
+    <p>Our primary question is: what can we do to help a reader make a better choice in this category?</p>
 
     <h2>What We Consider</h2>
     <p>Depending on the topic, our editorial team may consider the following signals.</p>
@@ -284,7 +284,7 @@ export default function HowWeRankPage() {
     <SignalSection title="Source Quality">
       <p>We consider the reliability of the information supporting a ranking. Where possible, we prefer:</p>
       <ol>{sourceQuality.map((item) => <li key={item}>{item}</li>)}</ol>
-      <p>Information published by a business about itself may be useful, but it is treated as first-party information rather than independent proof.</p>
+      <p>Information published by a business about itself can be useful, but we treat it as first-party information rather than independent proof. We prefer reliable public, official, and independent sources where available.</p>
     </SignalSection>
 
     <h2>Category-Specific Weighting</h2>
@@ -344,7 +344,7 @@ export default function HowWeRankPage() {
     <p>A business cannot buy a guaranteed editorial ranking.</p>
     <p>If Wikibulz offers any of the following, they should be clearly distinguishable from independent editorial rankings:</p>
     <BulletList items={commercialLabels} />
-    <p>Commercial relationships should not secretly determine ranking positions.</p>
+    <p>Commercial relationships must not secretly determine ranking positions. A business cannot pay for a guaranteed editorial rank or request a higher rank in exchange for a commercial relationship.</p>
 
     <h2>AI and Automation</h2>
     <p>Wikibulz may use AI or automation to assist with research organization, data processing, content structuring, or editorial workflows.</p>
