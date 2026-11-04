@@ -161,13 +161,13 @@ export default function AboutPage() {
       <div className="mx-auto max-w-7xl px-5 py-16 md:py-24">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">About Wikibulz</p>
         <h1 className="mt-4 max-w-4xl text-5xl font-black leading-[1.04] md:text-7xl">Local discovery should be easier to understand.</h1>
-        <p className="mt-7 max-w-2xl text-xl leading-9 text-[var(--muted)]">Wikibulz is a local discovery and comparison platform built to help people make better-informed choices.</p>
+        <p className="mt-7 max-w-2xl text-xl leading-9 text-[var(--muted)]">Wikibulz is a platform for local discovery and comparison, helping you make better-informed choices.</p>
         <p className="mt-3 text-sm text-[var(--muted)]">Publishing since {seoConfig.siteFoundedYear}. See our <a href={seoConfig.siteHistory.homepageArchive} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">2017 homepage snapshot</a> and an <a href={seoConfig.siteHistory.articleArchive} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">archived article on property costs across eight cities</a>.</p>
       </div>
     </section>
 
     <article className="prose-content mx-auto max-w-3xl px-5 py-10">
-      <p>We research local businesses, professionals, services, and places, then organize that information into practical city guides, rankings, and comparison pages.</p>
+      <p>We study local businesses, professionals, services, and places, then turn our findings into useful city guides, rankings, and comparison pages.</p>
       <p>Our goal is not to tell every reader that there is one universal best option.</p>
       <p>Instead, we help you understand:</p>
       <BulletList items={decisionHelp} />
