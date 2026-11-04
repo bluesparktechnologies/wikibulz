@@ -182,9 +182,8 @@ export default function EditorialPolicyPage() {
   return <><SiteHeader /><main className="prose-content mx-auto max-w-3xl px-5 py-10">
     <p className="text-sm font-bold uppercase tracking-wide text-[var(--accent)]">Editorial standards</p>
     <h1>Editorial Policy</h1>
-    <p>Wikibulz exists to help people make better-informed decisions.</p>
-    <p>We publish rankings, comparisons, local discovery guides, and informational content across categories such as healthcare, education, professional services, food, lifestyle, and local businesses.</p>
-    <p>Our editorial standards are built around three principles: usefulness for readers, evidence and transparency, and editorial independence.</p>
+    <p>Wikibulz helps readers make better decisions. We provide rankings, comparisons, local finders, information, and content across healthcare, education, professional services, food, lifestyle, local services, and business.</p>
+    <p>Our editorial policy is centered on three values: helpfulness to readers, evidence and transparency, and editorial independence.</p>
     <p>We aim to explain not only which businesses, professionals, or services are included, but also why they are included, what evidence we considered, and what limitations readers should keep in mind.</p>
 
     <h2>People-First Editorial Standards</h2>
