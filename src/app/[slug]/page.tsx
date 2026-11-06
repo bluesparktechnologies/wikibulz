@@ -1,4 +1,4 @@
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArticleView } from "@/components/blog/article";
 import { LocationPageView } from "@/components/blog/location-page";
 import { Footer, SiteHeader } from "@/components/blog/site-shell";
@@ -46,8 +46,6 @@ export default async function RootSlugPage({ params }: Props) {
 
   const post = await getPostBySlug(slug);
   if (post) {
-    const canonicalPath = new URL(resolvePostCanonical(post)).pathname;
-    if (normalizePath(canonicalPath) !== normalizePath(requestedPath)) permanentRedirect(canonicalPath);
     const related = await getRelatedPosts(post);
     const faq = faqSchema(post);
     const breadcrumbs = [
