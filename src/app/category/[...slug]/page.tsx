@@ -36,9 +36,11 @@ export async function generateMetadata({ params, searchParams }: Props) {
   if (!page) return { title: "Not Found", robots: { index: false, follow: false } };
   const posts = await getPostsByCategory(categorySlug, page);
   const base = generateCategoryMetadata(category);
+  if (page === 1) {
+    return { ...base, robots: { index: category.indexStatus === "index" && posts.length > 0, follow: true } };
+  }
   const canonical = resolveCategoryCanonical(category, page);
-  const title = page > 1 ? `${category.name} - Page ${page}` : String(base.title ?? category.name);
-  return generateListingMetadata({ title, description: String(base.description ?? category.description), canonical, index: category.indexStatus === "index" && posts.length > 0 });
+  return generateListingMetadata({ title: `${category.name} - Page ${page}`, description: String(base.description ?? category.description), canonical, index: category.indexStatus === "index" && posts.length > 0 });
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {
