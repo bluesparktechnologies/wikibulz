@@ -4,6 +4,8 @@ import { escapeXml, xmlResponse } from "@/lib/seo/xml";
 import { getAuthors, getCategories, getCities, getCountries, getPostsByAuthor, getPostsByLocation, getPublishedPosts, getStates, getStaticPages } from "@/repositories/content.repository";
 import type { LocationEntity } from "@/types/content";
 
+export const dynamic = "force-dynamic";
+
 const publicPages = ["/", "/blog", "/about", "/contact", "/editorial-policy", "/how-we-rank", "/corrections-policy", "/privacy-policy", "/terms", "/advertise", "/write-for-us"];
 
 function urlEntry(url: string, options: { lastmod?: string; changefreq?: string; priority?: string; image?: { url: string; alt: string } } = {}) {
