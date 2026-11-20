@@ -21,7 +21,7 @@ export function GET() {
     `- How we rank: ${base}/how-we-rank`,
     `- Editorial policy: ${base}/editorial-policy`,
     `- Corrections policy: ${base}/corrections-policy`,
-    `- Sitemap index: ${base}/sitemap.xml`,
+    `- Sitemap: ${base}/sitemap.xml`,
     "",
     "## Content Types",
     "- Article guides use server-rendered HTML, canonical metadata, Article/BlogPosting/NewsArticle JSON-LD, breadcrumbs, and optional FAQ schema.",

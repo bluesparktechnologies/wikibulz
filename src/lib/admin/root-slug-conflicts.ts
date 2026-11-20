@@ -24,11 +24,6 @@ const reservedRootSlugs = new Set([
   "terms",
   "write-for-us",
   "sitemap.xml",
-  "sitemap-authors.xml",
-  "sitemap-categories.xml",
-  "sitemap-locations.xml",
-  "sitemap-pages.xml",
-  "sitemap-posts-1.xml",
   "robots.txt",
   "icon.png",
 ]);

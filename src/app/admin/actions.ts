@@ -154,7 +154,6 @@ export async function saveCategoryAction(_state: AdminActionState, formData: For
     revalidatePath("/admin/posts");
     revalidatePath("/admin/posts/new");
     revalidatePath(`/category/${parsed.slug}`);
-    revalidatePath("/sitemap-categories.xml");
     revalidatePath("/sitemap.xml");
     return { ok: true, message: "Category saved.", entity: { id: String(category._id), name: category.name, slug: category.slug } };
   } catch (error) {
@@ -180,7 +179,7 @@ export async function deleteCategoryAction(formData: FormData): Promise<void> {
     await CategoryModel.findByIdAndDelete(id);
     revalidatePath("/admin/categories");
     revalidatePath("/admin/posts/new");
-    revalidatePath("/sitemap-categories.xml");
+    revalidatePath("/sitemap.xml");
     revalidatePath(`/category/${category.slug}`);
     redirect("/admin/categories?message=Category%20deleted.");
   } catch (error) {
@@ -274,7 +273,7 @@ export async function saveAuthorAction(_state: AdminActionState, formData: FormD
     revalidatePath("/admin/posts/new");
     revalidatePath(`/author/${slug}`);
     if (existing?.slug && existing.slug !== slug) revalidatePath(`/author/${existing.slug}`);
-    revalidatePath("/sitemap-authors.xml");
+    revalidatePath("/sitemap.xml");
     return { ok: true, message: "Author saved.", entity: author ? { id: String(author._id), name: author.name, slug: author.slug } : undefined };
   } catch (error) {
     return initialError(error instanceof Error ? error.message : "Author save failed.");
@@ -307,7 +306,6 @@ export async function saveCountryAction(_state: AdminActionState, formData: Form
     if (!country) return initialError("Country could not be saved.");
     revalidatePath("/admin/locations");
     revalidatePath(`/${parsed.slug}`);
-    revalidatePath("/sitemap-locations.xml");
     revalidatePath("/sitemap.xml");
     return { ok: true, message: "Country saved.", entity: { id: String(country._id), name: country.name, slug: country.slug } };
   } catch (error) {
@@ -345,7 +343,6 @@ export async function saveStateAction(_state: AdminActionState, formData: FormDa
     if (!state) return initialError("State could not be saved.");
     revalidatePath("/admin/locations");
     revalidatePath(`/${parsed.slug}`);
-    revalidatePath("/sitemap-locations.xml");
     revalidatePath("/sitemap.xml");
     return { ok: true, message: "State saved.", entity: { id: String(state._id), name: state.name, slug: state.slug } };
   } catch (error) {
@@ -388,7 +385,6 @@ export async function saveCityAction(_state: AdminActionState, formData: FormDat
     if (!city) return initialError("City could not be saved.");
     revalidatePath("/admin/locations");
     revalidatePath(`/${parsed.slug}`);
-    revalidatePath("/sitemap-locations.xml");
     revalidatePath("/sitemap.xml");
     return { ok: true, message: "City saved.", entity: { id: String(city._id), name: city.name, slug: city.slug } };
   } catch (error) {
