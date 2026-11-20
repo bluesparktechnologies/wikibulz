@@ -6,6 +6,15 @@ import { posts } from "@/lib/content/sample-data";
 import { seoConfig } from "@/config/seo";
 
 describe("category canonical metadata", () => {
+  it("does not append the site name twice when an SEO title includes it", () => {
+    const category = {
+      id: "category-healthcare", name: "Healthcare", slug: "healthcare", description: "Healthcare guides",
+      seoTitle: "Healthcare Rankings | Wikibulz", indexStatus: "index" as const,
+    };
+    expect(generateCategoryMetadata(category).title).toEqual({ absolute: category.seoTitle });
+    expect(generatePostMetadata({ ...posts[0], seoTitle: "Best Dentists | Wikibulz" }).title).toEqual({ absolute: "Best Dentists | Wikibulz" });
+    expect(generatePostMetadata({ ...posts[0], seoTitle: "Best Dentists" }).title).toBe("Best Dentists");
+  });
   it("matches the shared category canonical resolver for custom canonicals", () => {
     const category = {
       id: "category-healthcare",
